@@ -1,0 +1,40 @@
+# Binaires
+bin/
+gip
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Tests
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Données
+data.db
+*.db
+
+# Fichiers temporaires
+tmp/
+*.log
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+!README.md
+
+# Autres
+.env
+.DS_Store
