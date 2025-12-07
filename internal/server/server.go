@@ -70,6 +70,8 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 		})
 	})
 
+	setupProjectRoutes(router, db)
+
 	return router
 }
 

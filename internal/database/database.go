@@ -31,7 +31,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 // createTables crée les tables nécessaires
 func createTables(db *sql.DB) error {
 	// Table users
-	query := `
+	usersQuery := `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
@@ -40,12 +40,20 @@ func createTables(db *sql.DB) error {
 	);
 	`
 
-	if _, err := db.Exec(query); err != nil {
+	if _, err := db.Exec(usersQuery); err != nil {
 		log.Error().Err(err).Msg("Erreur lors de la création de la table users")
 		return err
 	}
 
 	log.Info().Msg("Table 'users' créée ou déjà existante")
+
+	// Table projects
+	if err := CreateProjectsTable(db); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la création de la table projects")
+		return err
+	}
+
+	log.Info().Msg("Table 'projects' créée ou déjà existante")
 
 	// Insérer des données de test si la table est vide
 	var count int
