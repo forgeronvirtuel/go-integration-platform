@@ -100,7 +100,7 @@ func setupProjectRoutes(router *gin.Engine, db *sql.DB) {
 			var req CreateProjectRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"error": "invalid request body",
+					"error":   "invalid request body",
 					"details": err.Error(),
 				})
 				return
@@ -115,7 +115,7 @@ func setupProjectRoutes(router *gin.Engine, db *sql.DB) {
 			if err != nil {
 				log.Error().Err(err).Str("name", req.Name).Msg("Erreur lors de la création du projet")
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "unable to create project",
+					"error":   "unable to create project",
 					"details": err.Error(),
 				})
 				return
@@ -138,7 +138,7 @@ func setupProjectRoutes(router *gin.Engine, db *sql.DB) {
 			var req UpdateProjectRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"error": "invalid request body",
+					"error":   "invalid request body",
 					"details": err.Error(),
 				})
 				return
@@ -163,7 +163,7 @@ func setupProjectRoutes(router *gin.Engine, db *sql.DB) {
 			if err != nil {
 				log.Error().Err(err).Int("id", id).Msg("Erreur lors de la mise à jour du projet")
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "unable to update project",
+					"error":   "unable to update project",
 					"details": err.Error(),
 				})
 				return
