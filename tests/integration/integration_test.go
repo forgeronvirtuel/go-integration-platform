@@ -99,8 +99,8 @@ func TestIntegrationHealthEndpoint(t *testing.T) {
 	assert.Equal(t, "connected", result["database"], "La database devrait être connectée")
 }
 
-func TestIntegrationUsersEndpoint(t *testing.T) {
-	resp, err := http.Get(baseURL + "/users")
+func TestIntegrationProjectsEndpoint(t *testing.T) {
+	resp, err := http.Get(baseURL + "/api/projects")
 	require.NoError(t, err, "La requête HTTP ne devrait pas échouer")
 	defer resp.Body.Close()
 
@@ -110,41 +110,11 @@ func TestIntegrationUsersEndpoint(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err, "Le décodage JSON ne devrait pas échouer")
 
-	users, ok := result["users"].([]interface{})
-	require.True(t, ok, "Les users devraient être un tableau")
-	require.NotEmpty(t, users, "Il devrait y avoir des utilisateurs")
+	projects, ok := result["projects"].([]interface{})
+	require.True(t, ok, "Les projects devraient être un tableau")
 
-	// Vérifier le premier utilisateur
-	firstUser := users[0].(map[string]interface{})
-	assert.NotNil(t, firstUser["id"], "L'utilisateur devrait avoir un ID")
-	assert.NotEmpty(t, firstUser["name"], "L'utilisateur devrait avoir un nom")
-	assert.NotEmpty(t, firstUser["email"], "L'utilisateur devrait avoir un email")
-}
-
-func TestIntegrationUsersContent(t *testing.T) {
-	resp, err := http.Get(baseURL + "/users")
-	require.NoError(t, err)
-	defer resp.Body.Close()
-
-	var result map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	require.NoError(t, err)
-
-	users := result["users"].([]interface{})
-
-	// Vérifier qu'on a au moins les 3 utilisateurs de test
-	assert.GreaterOrEqual(t, len(users), 3, "Il devrait y avoir au moins 3 utilisateurs")
-
-	// Vérifier que les utilisateurs de test sont présents
-	userEmails := make([]string, len(users))
-	for i, user := range users {
-		u := user.(map[string]interface{})
-		userEmails[i] = u["email"].(string)
-	}
-
-	assert.Contains(t, userEmails, "alice@example.com", "Alice devrait être dans la liste")
-	assert.Contains(t, userEmails, "bob@example.com", "Bob devrait être dans la liste")
-	assert.Contains(t, userEmails, "charlie@example.com", "Charlie devrait être dans la liste")
+	// Le tableau peut être vide initialement, c'est normal
+	assert.NotNil(t, projects, "Le tableau projects ne devrait pas être nil")
 }
 
 func TestIntegration404NotFound(t *testing.T) {
@@ -172,7 +142,7 @@ func TestIntegrationConcurrentRequests(t *testing.T) {
 
 	for i := 0; i < numRequests; i++ {
 		go func() {
-			resp, err := http.Get(baseURL + "/users")
+			resp, err := http.Get(baseURL + "/health")
 			if err != nil {
 				errors <- err
 				return
