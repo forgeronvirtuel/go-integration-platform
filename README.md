@@ -74,14 +74,19 @@ go run main.go serve
 
 Options disponibles :
 
-- `-p, --port` : Port d'écoute (défaut: 8080)
+- `-p, --port` : Port d'écoute (défaut: 3000)
 - `-d, --database` : Chemin vers le fichier SQLite (défaut: ./data.db)
+- `-w, --workspace` : Répertoire de workspace pour les projets (défaut: ./workspace)
 
 Exemple :
 
 ```bash
-./bin/gip serve --port 3000 --database /tmp/mydb.db
+./bin/gip serve --port 3000 --database /tmp/mydb.db --workspace /var/projects
 ```
+
+**Note importante sur le workspace :**
+
+Le programme vérifie au démarrage que le répertoire de workspace existe et dispose des permissions en lecture/écriture. Si le répertoire n'existe pas, il sera créé automatiquement. Si le programme n'a pas les permissions nécessaires, il s'arrêtera avec une erreur.
 
 ### Développement avec rechargement automatique
 
