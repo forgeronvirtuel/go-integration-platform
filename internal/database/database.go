@@ -42,7 +42,11 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 
-	log.Info().Msg("Table 'projects' créée ou déjà existante")
+	// Table builds
+	if err := CreateBuildsTable(db); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la création de la table builds")
+		return err
+	}
 
 	return nil
 }

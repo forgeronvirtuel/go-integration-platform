@@ -39,7 +39,7 @@ var serveCmd = &cobra.Command{
 		log.Info().Msg("Base de données initialisée avec succès")
 
 		// Démarrer le serveur
-		server.Start(port, db)
+		server.Start(port, db, workspaceDir)
 	},
 }
 

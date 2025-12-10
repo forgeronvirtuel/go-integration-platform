@@ -17,13 +17,10 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("Erreur lors de l'ouverture de la base de données: %v", err)
 	}
 
-	// Activer les foreign keys
 	_, err = db.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
 		t.Fatalf("Erreur lors de l'activation des foreign keys: %v", err)
 	}
-
-	// Note: Les tests ne nécessitent pas de tables car ils testent juste les routes de base
 
 	return db
 }
@@ -33,7 +30,7 @@ func TestHelloWorldRoute(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
@@ -49,7 +46,7 @@ func TestHealthRoute(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("GET", "/health", nil)
 	w := httptest.NewRecorder()
@@ -65,7 +62,7 @@ func TestRouteStructure(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	// Tester que le routeur est correctement configuré
 	assert.NotNil(t, router, "Le routeur ne devrait pas être nil")
@@ -76,7 +73,7 @@ func TestHealthRouteWithClosedDB(t *testing.T) {
 	db.Close() // Fermer la DB pour simuler une erreur
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("GET", "/health", nil)
 	w := httptest.NewRecorder()

@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 
 	// Démarrer le serveur dans une goroutine
 	go func() {
-		server.Start(testPort, testDB)
+		server.Start(testPort, testDB, "./test-workspace")
 	}()
 
 	// Attendre que le serveur démarre

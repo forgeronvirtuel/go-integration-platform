@@ -31,7 +31,7 @@ func TestCreateProjectEndpoint(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	reqBody := CreateProjectRequest{
 		Name:    "api-users",
@@ -64,7 +64,7 @@ func TestCreateProjectWithDefaultBranch(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	reqBody := CreateProjectRequest{
 		Name:    "test-project",
@@ -95,7 +95,7 @@ func TestGetAllProjectsEndpoint(t *testing.T) {
 	database.CreateProject(db, "project2", "https://github.com/user/p2.git", "develop", "api")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("GET", "/api/projects", nil)
 	w := httptest.NewRecorder()
@@ -119,7 +119,7 @@ func TestGetProjectByIDEndpoint(t *testing.T) {
 	created, _ := database.CreateProject(db, "api-users", "https://github.com/user/api-users.git", "main", "")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("GET", "/api/projects/"+string(rune(created.ID+'0')), nil)
 	w := httptest.NewRecorder()
@@ -142,7 +142,7 @@ func TestGetProjectByNameEndpoint(t *testing.T) {
 	database.CreateProject(db, "api-users", "https://github.com/user/api-users.git", "main", "")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("GET", "/api/projects/by-name/api-users", nil)
 	w := httptest.NewRecorder()
@@ -162,7 +162,7 @@ func TestUpdateProjectEndpoint(t *testing.T) {
 	created, _ := database.CreateProject(db, "api-users", "https://github.com/user/api-users.git", "main", "")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	reqBody := UpdateProjectRequest{
 		Name:    "api-users-v2",
@@ -194,7 +194,7 @@ func TestDeleteProjectEndpoint(t *testing.T) {
 	created, _ := database.CreateProject(db, "api-users", "https://github.com/user/api-users.git", "main", "")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("DELETE", "/api/projects/"+string(rune(created.ID+'0')), nil)
 	w := httptest.NewRecorder()
@@ -213,7 +213,7 @@ func TestGetProjectNotFound(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("GET", "/api/projects/999", nil)
 	w := httptest.NewRecorder()
@@ -231,7 +231,7 @@ func TestCreateProjectInvalidRequest(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	// Request sans nom (champ requis)
 	reqBody := map[string]string{
@@ -253,7 +253,7 @@ func TestUpdateProjectNotFound(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	reqBody := UpdateProjectRequest{
 		Name:    "test",
@@ -276,7 +276,7 @@ func TestDeleteProjectNotFound(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db)
+	router := SetupRouter(db, "")
 
 	req, _ := http.NewRequest("DELETE", "/api/projects/999", nil)
 	w := httptest.NewRecorder()

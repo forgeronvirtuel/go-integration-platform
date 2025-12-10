@@ -37,7 +37,10 @@ func (h *HealthHandler) Health(c *gin.Context) {
 }
 
 // SetupRouter crée et configure le router Gin avec toutes les routes
-func SetupRouter(db *sql.DB) *gin.Engine {
+func SetupRouter(db *sql.DB, workspace string) *gin.Engine {
+	if workspace == "" {
+		workspace = "./workspace"
+	}
 	router := gin.Default()
 
 	// Endpoint: Hello World
@@ -48,15 +51,15 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	router.GET("/health", healthHandler.Health)
 
 	setupProjectRoutes(router, db)
+	setupBuildRoutes(router, db, workspace)
 
 	return router
 }
 
-func Start(port string, db *sql.DB) {
-	// Configuration de Gin en mode release
+func Start(port string, db *sql.DB, workspace string) {
 	gin.SetMode(gin.ReleaseMode)
 
-	router := SetupRouter(db)
+	router := SetupRouter(db, workspace)
 
 	log.Info().Str("port", port).Msg("Serveur HTTP démarré")
 	if err := router.Run(":" + port); err != nil {
