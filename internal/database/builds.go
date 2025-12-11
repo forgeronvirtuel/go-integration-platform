@@ -71,6 +71,7 @@ func CreateBuild(db *sql.DB, projectID int, branch string) (*Build, error) {
 // GetBuildByID récupère un build par son ID
 func GetBuildByID(db *sql.DB, id string) (*Build, error) {
 	build := &Build{}
+
 	err := db.QueryRow(
 		"SELECT id, project_id, branch, status, log_output, started_at, ended_at, created_at FROM builds WHERE id = ?",
 		id,
