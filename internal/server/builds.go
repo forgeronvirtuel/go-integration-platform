@@ -203,12 +203,70 @@ func (h *BuildHandler) DownloadBinary(c *gin.Context) {
 	c.File(binaryPath)
 }
 
+// GetBuild récupère les détails d'un build spécifique
+func (h *BuildHandler) GetBuild(c *gin.Context) {
+	buildID := c.Param("id")
+
+	build, err := database.GetBuildByID(h.DB, buildID)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Build not found"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"id":         build.ID,
+		"project_id": build.ProjectID,
+		"branch":     build.Branch,
+		"status":     build.Status,
+		"log_output": build.LogOutput,
+		"started_at": build.StartedAt,
+		"ended_at":   build.EndedAt,
+		"created_at": build.CreatedAt,
+	})
+}
+
+// GetBuildsByProject récupère tous les builds d'un projet
+func (h *BuildHandler) GetBuildsByProject(c *gin.Context) {
+	projectIDStr := c.Param("project_id")
+
+	// Convertir le project_id en int
+	var projectID int
+	if _, err := fmt.Sscanf(projectIDStr, "%d", &projectID); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid project ID"})
+		return
+	}
+
+	builds, err := database.GetBuildsByProjectID(h.DB, projectID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to fetch builds"})
+		return
+	}
+
+	// Convertir les builds en réponse JSON
+	var response []gin.H
+	for _, build := range builds {
+		response = append(response, gin.H{
+			"id":         build.ID,
+			"project_id": build.ProjectID,
+			"branch":     build.Branch,
+			"status":     build.Status,
+			"started_at": build.StartedAt,
+			"ended_at":   build.EndedAt,
+			"created_at": build.CreatedAt,
+		})
+	}
+
+	c.JSON(200, response)
+}
+
 func setupBuildRoutes(router *gin.Engine, db *sql.DB, workspace string) {
 	handler := BuildHandler{DB: db, workspace: workspace}
 	builds := router.Group("/api/builds")
 	{
 		builds.POST("/", handler.CreateBuild)
+		builds.GET("/:id", handler.GetBuild)
 		builds.GET("/:id/download", handler.DownloadBinary)
+		builds.GET("/project/:project_id", handler.GetBuildsByProject)
 	}
 }
 

@@ -2,8 +2,31 @@
 const { useState } = React;
 
 function App() {
-  const [activeTab, setActiveTab] = useState("projects");
+  const [view, setView] = useState("projects"); // "projects", "project-detail", "build-detail"
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedBuild, setSelectedBuild] = useState(null);
   const [message, setMessage] = useState("");
+
+  const handleProjectSelect = (project) => {
+    setSelectedProject(project);
+    setView("project-detail");
+  };
+
+  const handleBuildSelect = (build) => {
+    setSelectedBuild(build);
+    setView("build-detail");
+  };
+
+  const handleBackToProjects = () => {
+    setView("projects");
+    setSelectedProject(null);
+    setSelectedBuild(null);
+  };
+
+  const handleBackToProjectDetail = () => {
+    setView("project-detail");
+    setSelectedBuild(null);
+  };
 
   return (
     <div className="min-h-screen">
@@ -12,48 +35,30 @@ function App() {
       <main className="container mx-auto px-4 py-8">
         <MessageBanner message={message} />
 
-        <div className="card bg-white rounded-lg shadow-lg overflow-hidden">
-          <nav className="flex border-b">
-            <button
-              onClick={() => setActiveTab("projects")}
-              className={`tab-button px-6 py-4 font-semibold transition-colors ${
-                activeTab === "projects"
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              📁 Projets
-            </button>
-            <button
-              onClick={() => setActiveTab("builds")}
-              className={`tab-button px-6 py-4 font-semibold transition-colors ${
-                activeTab === "builds"
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              🔨 Builds
-            </button>
-            <button
-              onClick={() => setActiveTab("download")}
-              className={`tab-button px-6 py-4 font-semibold transition-colors ${
-                activeTab === "download"
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              📥 Téléchargements
-            </button>
-          </nav>
+        {view === "projects" && (
+          <ProjectsList
+            onMessage={setMessage}
+            onProjectSelect={handleProjectSelect}
+          />
+        )}
 
-          <div className="p-8">
-            {activeTab === "projects" && <ProjectForm onMessage={setMessage} />}
-            {activeTab === "builds" && <BuildForm onMessage={setMessage} />}
-            {activeTab === "download" && (
-              <DownloadForm onMessage={setMessage} />
-            )}
-          </div>
-        </div>
+        {view === "project-detail" && selectedProject && (
+          <ProjectDetail
+            project={selectedProject}
+            onMessage={setMessage}
+            onBack={handleBackToProjects}
+            onBuildSelect={handleBuildSelect}
+          />
+        )}
+
+        {view === "build-detail" && selectedBuild && (
+          <BuildDetail
+            build={selectedBuild}
+            project={selectedProject}
+            onMessage={setMessage}
+            onBack={handleBackToProjectDetail}
+          />
+        )}
 
         <footer className="mt-8 text-center text-gray-500 text-sm">
           <p>

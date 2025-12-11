@@ -1,9 +1,34 @@
 /* Styles personnalisés pour GIP */
 
+/* Reset et base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Loading indicator */
+#loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #f9fafb;
+  z-index: 9999;
+}
+
+#root:not(:empty) ~ #loading {
+  display: none;
+}
+
 
 .tab-button {
   transition: all 0.2s ease-in-out;
@@ -61,4 +86,37 @@ body {
 
 code {
   font-family: "Monaco", "Courier New", monospace;
+}
+
+/* Animation pour le spinner de build en cours */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Style pour les badges de statut */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+/* Amélioration des cartes de projets et builds */
+.project-card,
+.build-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.project-card:hover,
+.build-card:hover {
+  transform: translateY(-2px);
 }
