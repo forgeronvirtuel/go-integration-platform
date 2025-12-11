@@ -62,9 +62,18 @@ func (h *BuildHandler) CreateBuild(c *gin.Context) {
 	}
 
 	// Clone the repository into the workspace directory
-	repoPath := filepath.Join(h.workspace, fmt.Sprintf("project-%d", project.ID))
+	// Always use absolute path
+	absWorkspace, err := filepath.Abs(h.workspace)
+	if err != nil {
+		database.UpdateBuildStatus(h.DB, build.ID, "failed", "Failed to get absolute workspace path")
+		c.JSON(500, gin.H{"error": "Failed to get absolute workspace path"})
+		return
+	}
+
+	repoPath := filepath.Join(absWorkspace, fmt.Sprintf("project-%d", project.ID))
 	err = os.RemoveAll(repoPath)
 	if err != nil {
+		database.UpdateBuildStatus(h.DB, build.ID, "failed", "Failed to clean workspace")
 		c.JSON(500, gin.H{"error": "Failed to clean workspace"})
 		return
 	}
@@ -107,6 +116,8 @@ func (h *BuildHandler) CreateBuild(c *gin.Context) {
 	// Generate binary name from project name
 	binaryName := fmt.Sprintf("%s-%d", project.Name, build.ID)
 	binaryPath := filepath.Join(outDir, binaryName)
+	// binaryPath is already absolute since repoPath is absolute
+
 	buildArgs := []string{
 		"build",
 		"-o", binaryPath,
@@ -153,6 +164,7 @@ func (h *BuildHandler) DownloadBinary(c *gin.Context) {
 
 	// Extraire le chemin du binaire depuis log_output (première ligne)
 	var binaryPath string
+
 	if len(build.LogOutput) > 8 && build.LogOutput[:8] == "Binary: " {
 		// Extraire le chemin (jusqu'au premier \n)
 		for i := 8; i < len(build.LogOutput); i++ {
@@ -205,8 +217,14 @@ func setupBuildRoutes(router *gin.Engine, db *sql.DB, workspace string) {
 func runCmd(ctx context.Context, workDir string, log io.Writer, name string, args ...string) error {
 	fmt.Fprintf(log, "==> Running: %s %v (in %s)\n", name, args, workDir)
 
+	// Convert to absolute path to ensure GOCACHE and GOMODCACHE are absolute
+	absWorkDir, err := filepath.Abs(workDir)
+	if err != nil {
+		return err
+	}
+
 	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Dir = workDir
+	cmd.Dir = absWorkDir
 
 	// Minimal, controlled environment:
 	// - PATH is kept from parent (to find git/go)
@@ -214,9 +232,9 @@ func runCmd(ctx context.Context, workDir string, log io.Writer, name string, arg
 	// - No proxy, no extra env from the parent process.
 	env := []string{
 		"PATH=" + os.Getenv("PATH"),
-		"HOME=" + workDir,
-		"GOMODCACHE=" + filepath.Join(workDir, ".gomodcache"),
-		"GOCACHE=" + filepath.Join(workDir, ".gocache"),
+		"HOME=" + absWorkDir,
+		"GOMODCACHE=" + filepath.Join(absWorkDir, ".gomodcache"),
+		"GOCACHE=" + filepath.Join(absWorkDir, ".gocache"),
 	}
 	cmd.Env = env
 
