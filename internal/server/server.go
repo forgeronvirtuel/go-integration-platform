@@ -8,14 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func HelloWorld(c *gin.Context) {
-	log.Info().Msg("Route / appelée")
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Hello World!",
-		"status":  "ok",
-	})
-}
-
 type HealthHandler struct {
 	DB *sql.DB
 }
@@ -43,8 +35,11 @@ func SetupRouter(db *sql.DB, workspace string) *gin.Engine {
 	}
 	router := gin.Default()
 
-	// Endpoint: Hello World
-	router.GET("/", HelloWorld)
+	// Serve static files (CSS, JS, etc.)
+	router.Static("/static", "./web/static")
+
+	// Endpoint: UI Interface
+	router.StaticFile("/", "./web/index.html")
 
 	// Endpoint: Health with DB check
 	healthHandler := &HealthHandler{DB: db}
