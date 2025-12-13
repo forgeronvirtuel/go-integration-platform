@@ -10,7 +10,7 @@ function BuildDetail({ build, project, onMessage, onBack }) {
       const response = await fetch(`/api/builds/${build.id}`);
       const data = await response.json();
       console.log("📦 [BuildDetail] Données du build:", data);
-      
+
       if (response.ok) {
         console.log("✅ [BuildDetail] Build mis à jour, statut:", data.status);
         setBuildData(data);

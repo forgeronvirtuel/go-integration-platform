@@ -4,66 +4,84 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GIP - Go Integration Platform</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
-    
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"
+    />
+
     <!-- Préchargement des ressources critiques -->
-    <link rel="preconnect" href="https://unpkg.com">
-    <link rel="preconnect" href="https://cdn.tailwindcss.com">
-    
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" />
+
     <!-- CSS d'abord pour éviter le flash -->
     <link rel="stylesheet" href="/static/css/main.css" />
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- React et Babel (dev only - à remplacer en production) -->
-    <script defer src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script defer src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script defer src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script
+      defer
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      defer
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+    <script
+      defer
+      src="https://unpkg.com/@babel/standalone/babel.min.js"
+    ></script>
   </head>
   <body class="bg-gray-50">
     <!-- Loading indicator -->
     <div id="loading" class="flex items-center justify-center min-h-screen">
       <div class="text-center">
-        <div class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+        <div
+          class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"
+        ></div>
         <p class="text-gray-600 font-semibold">Chargement de GIP...</p>
       </div>
     </div>
-    
+
     <div id="root"></div>
 
     <!-- Components React - chargés après le DOM -->
-    <script type="text/babel" src="/static/js/components/Header.js" defer></script>
     <script
       type="text/babel"
-      src="/static/js/components/MessageBanner.js" defer
+      src="/static/js/components/Header.js"
+      defer
     ></script>
     <script
       type="text/babel"
-      src="/static/js/components/ProjectForm.js" defer
+      src="/static/js/components/MessageBanner.js"
+      defer
     ></script>
     <script
       type="text/babel"
-      src="/static/js/components/ProjectDetail.js" defer
+      src="/static/js/components/ProjectForm.js"
+      defer
     ></script>
     <script
       type="text/babel"
-      src="/static/js/components/BuildDetail.js" defer
+      src="/static/js/components/ProjectDetail.js"
+      defer
     ></script>
-    <script type="text/babel" src="/static/js/components/BuildForm.js" defer></script>
     <script
       type="text/babel"
-      src="/static/js/components/DownloadForm.js" defer
+      src="/static/js/components/BuildDetail.js"
+      defer
+    ></script>
+    <script
+      type="text/babel"
+      src="/static/js/components/BuildForm.js"
+      defer
+    ></script>
+    <script
+      type="text/babel"
+      src="/static/js/components/DownloadForm.js"
+      defer
     ></script>
 
     <!-- Application principale - chargé en dernier -->
-    <script type="text/babel" defer>
-      // Cacher le loader une fois l'app montée
-      window.addEventListener('DOMContentLoaded', () => {
-        const loader = document.getElementById('loading');
-        if (loader) {
-          setTimeout(() => loader.style.display = 'none', 100);
-        }
-      });
-    </script>
     <script type="text/babel" src="/static/js/app.js" defer></script>
   </body>
 </html>

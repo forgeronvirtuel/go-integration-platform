@@ -10,11 +10,15 @@ function ProjectsList({ onMessage, onProjectSelect }) {
       const response = await fetch("/api/projects");
       const data = await response.json();
       console.log("📦 [ProjectsList] Données reçues:", data);
-      
+
       if (response.ok) {
         // L'API retourne {projects: [...], count: N}
         const projectsArray = data.projects || [];
-        console.log("✅ [ProjectsList] Projets chargés:", projectsArray.length, "projet(s)");
+        console.log(
+          "✅ [ProjectsList] Projets chargés:",
+          projectsArray.length,
+          "projet(s)"
+        );
         setProjects(projectsArray);
       } else {
         console.error("❌ [ProjectsList] Erreur HTTP:", response.status, data);
@@ -123,7 +127,10 @@ function ProjectForm({ onMessage, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log("📤 [ProjectForm] Création d'un projet:", { name: projectName, repo_url: repoUrl });
+      console.log("📤 [ProjectForm] Création d'un projet:", {
+        name: projectName,
+        repo_url: repoUrl,
+      });
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,7 +143,7 @@ function ProjectForm({ onMessage, onSuccess }) {
       });
       const data = await response.json();
       console.log("📦 [ProjectForm] Réponse reçue:", data);
-      
+
       if (response.ok) {
         console.log("✅ [ProjectForm] Projet créé avec ID:", data.id);
         onMessage("✅ Projet créé avec succès! ID: " + data.id);

@@ -72,4 +72,18 @@ function App() {
   );
 }
 
-ReactDOM.render(<App />, document.getElementById("root"));
+// Attendre que React et tous les composants soient chargés
+if (typeof React !== "undefined" && typeof ReactDOM !== "undefined") {
+  console.log("✅ [App] React chargé, montage de l'application...");
+
+  // Cacher le loader
+  const loader = document.getElementById("loading");
+  if (loader) {
+    loader.style.display = "none";
+  }
+
+  ReactDOM.render(<App />, document.getElementById("root"));
+  console.log("✅ [App] Application montée avec succès");
+} else {
+  console.error("❌ [App] React ou ReactDOM non disponible");
+}

@@ -7,14 +7,21 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
 
   const loadBuilds = async () => {
     try {
-      console.log("🔍 [ProjectDetail] Chargement des builds pour projet", project.id);
+      console.log(
+        "🔍 [ProjectDetail] Chargement des builds pour projet",
+        project.id
+      );
       const response = await fetch(`/api/builds/project/${project.id}`);
       const data = await response.json();
       console.log("📦 [ProjectDetail] Builds reçus:", data);
-      
+
       if (response.ok) {
         const buildsArray = Array.isArray(data) ? data : [];
-        console.log("✅ [ProjectDetail] Builds chargés:", buildsArray.length, "build(s)");
+        console.log(
+          "✅ [ProjectDetail] Builds chargés:",
+          buildsArray.length,
+          "build(s)"
+        );
         setBuilds(buildsArray);
       } else {
         console.error("❌ [ProjectDetail] Erreur HTTP:", response.status, data);
@@ -37,7 +44,12 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
   const handleCreateBuild = async (e) => {
     e.preventDefault();
     try {
-      console.log("🔨 [ProjectDetail] Création d'un build pour projet", project.id, "branche:", buildBranch);
+      console.log(
+        "🔨 [ProjectDetail] Création d'un build pour projet",
+        project.id,
+        "branche:",
+        buildBranch
+      );
       const response = await fetch("/api/builds/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -48,7 +60,7 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
       });
       const data = await response.json();
       console.log("📦 [ProjectDetail] Réponse build:", data);
-      
+
       if (response.ok) {
         console.log("✅ [ProjectDetail] Build créé avec ID:", data.id);
         onMessage("✅ Build lancé avec succès! ID: " + data.id);

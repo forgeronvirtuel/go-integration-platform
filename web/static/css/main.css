@@ -23,12 +23,12 @@ body {
   height: 100%;
   background: #f9fafb;
   z-index: 9999;
+  transition: opacity 0.3s ease;
 }
 
-#root:not(:empty) ~ #loading {
+#loading.hidden {
   display: none;
 }
-
 
 .tab-button {
   transition: all 0.2s ease-in-out;
