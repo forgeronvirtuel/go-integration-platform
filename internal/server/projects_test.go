@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const baseUrl = "/v1"
+
 func setupProjectTestDB(t *testing.T) *sql.DB {
 	db, err := sql.Open("sqlite3", ":memory:")
 	require.NoError(t, err)
@@ -41,7 +43,7 @@ func TestCreateProjectEndpoint(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", "/api/projects", bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest("POST", baseUrl+"/api/projects", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -73,7 +75,7 @@ func TestCreateProjectWithDefaultBranch(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", "/api/projects", bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest("POST", baseUrl+"/api/projects", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -97,7 +99,7 @@ func TestGetAllProjectsEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("GET", "/api/projects", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/api/projects", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -121,7 +123,7 @@ func TestGetProjectByIDEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("GET", "/api/projects/"+string(rune(created.ID+'0')), nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/api/projects/"+string(rune(created.ID+'0')), nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -144,7 +146,7 @@ func TestGetProjectByNameEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("GET", "/api/projects/by-name/api-users", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/api/projects/by-name/api-users", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -172,7 +174,7 @@ func TestUpdateProjectEndpoint(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("PUT", "/api/projects/"+string(rune(created.ID+'0')), bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest("PUT", baseUrl+"/api/projects/"+string(rune(created.ID+'0')), bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -196,7 +198,7 @@ func TestDeleteProjectEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("DELETE", "/api/projects/"+string(rune(created.ID+'0')), nil)
+	req, _ := http.NewRequest("DELETE", baseUrl+"/api/projects/"+string(rune(created.ID+'0')), nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -215,7 +217,7 @@ func TestGetProjectNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("GET", "/api/projects/999", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/api/projects/999", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -239,7 +241,7 @@ func TestCreateProjectInvalidRequest(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", "/api/projects", bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest("POST", baseUrl+"/api/projects", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -262,7 +264,7 @@ func TestUpdateProjectNotFound(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("PUT", "/api/projects/999", bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest("PUT", baseUrl+"/api/projects/999", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -278,7 +280,7 @@ func TestDeleteProjectNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("DELETE", "/api/projects/999", nil)
+	req, _ := http.NewRequest("DELETE", baseUrl+"/api/projects/999", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

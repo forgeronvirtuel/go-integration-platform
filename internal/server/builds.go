@@ -259,7 +259,7 @@ func (h *BuildHandler) GetBuildsByProject(c *gin.Context) {
 	c.JSON(200, response)
 }
 
-func setupBuildRoutes(router *gin.Engine, db *sql.DB, workspace string) {
+func setupBuildRoutes(router *gin.RouterGroup, db *sql.DB, workspace string) {
 	handler := BuildHandler{DB: db, workspace: workspace}
 	builds := router.Group("/api/builds")
 	{

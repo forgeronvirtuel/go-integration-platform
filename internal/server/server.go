@@ -35,18 +35,25 @@ func SetupRouter(db *sql.DB, workspace string) *gin.Engine {
 	}
 	router := gin.Default()
 
+	router.GET("/", func(ctx *gin.Context) {
+		// redirect to /v1
+		ctx.Redirect(http.StatusMovedPermanently, "/v1/")
+	})
+
+	v1 := router.Group("/v1")
+
 	// Serve static files (CSS, JS, etc.)
-	router.Static("/static", "./web/static")
+	v1.Static("/static", "./web/static")
 
 	// Endpoint: UI Interface
-	router.StaticFile("/", "./web/index.html")
+	v1.StaticFile("/", "./web/index.html")
 
 	// Endpoint: Health with DB check
 	healthHandler := &HealthHandler{DB: db}
-	router.GET("/health", healthHandler.Health)
+	v1.GET("/health", healthHandler.Health)
 
-	setupProjectRoutes(router, db)
-	setupBuildRoutes(router, db, workspace)
+	setupProjectRoutes(v1, db)
+	setupBuildRoutes(v1, db, workspace)
 
 	return router
 }

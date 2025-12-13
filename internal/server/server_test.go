@@ -25,22 +25,6 @@ func setupTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func TestHelloWorldRoute(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-
-	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
-
-	req, _ := http.NewRequest("GET", "/", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Hello World!")
-	assert.Contains(t, w.Body.String(), "ok")
-}
-
 func TestHealthRoute(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
@@ -48,7 +32,7 @@ func TestHealthRoute(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("GET", "/health", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/health", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -75,7 +59,7 @@ func TestHealthRouteWithClosedDB(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupRouter(db, "")
 
-	req, _ := http.NewRequest("GET", "/health", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/health", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

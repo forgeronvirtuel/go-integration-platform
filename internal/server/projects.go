@@ -25,7 +25,7 @@ type UpdateProjectRequest struct {
 	Subdir  string `json:"subdir"`
 }
 
-func setupProjectRoutes(router *gin.Engine, db *sql.DB) {
+func setupProjectRoutes(router *gin.RouterGroup, db *sql.DB) {
 	projects := router.Group("/api/projects")
 	{
 		// GET /api/projects - Liste tous les projets

@@ -20,7 +20,7 @@ import (
 const (
 	testPort   = "9999"
 	testDBPath = "./test_integration.db"
-	baseURL    = "http://localhost:9999"
+	baseURL    = "http://localhost:9999/v1/"
 )
 
 var testDB *sql.DB
