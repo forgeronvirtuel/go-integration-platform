@@ -7,7 +7,7 @@ function ProjectsList({ onMessage, onProjectSelect }) {
   const loadProjects = async () => {
     try {
       console.log("🔍 [ProjectsList] Chargement des projets...");
-      const response = await fetch("/api/projects");
+      const response = await fetch("/v1/api/projects");
       const data = await response.json();
       console.log("📦 [ProjectsList] Données reçues:", data);
 
@@ -131,7 +131,7 @@ function ProjectForm({ onMessage, onSuccess }) {
         name: projectName,
         repo_url: repoUrl,
       });
-      const response = await fetch("/api/projects", {
+      const response = await fetch("/v1/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

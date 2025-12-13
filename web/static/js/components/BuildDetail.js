@@ -7,7 +7,7 @@ function BuildDetail({ build, project, onMessage, onBack }) {
     setLoading(true);
     try {
       console.log("🔄 [BuildDetail] Rafraîchissement du build", build.id);
-      const response = await fetch(`/api/builds/${build.id}`);
+      const response = await fetch(`/v1/api/builds/${build.id}`);
       const data = await response.json();
       console.log("📦 [BuildDetail] Données du build:", data);
 
@@ -61,7 +61,7 @@ function BuildDetail({ build, project, onMessage, onBack }) {
   };
 
   const handleDownload = () => {
-    window.location.href = `/api/builds/${buildData.id}/download`;
+    window.location.href = `/v1/api/builds/${buildData.id}/download`;
     onMessage("📥 Téléchargement lancé...");
   };
 

@@ -7,7 +7,7 @@ function DownloadForm({ onMessage }) {
       onMessage("❌ Veuillez entrer un Build ID");
       return;
     }
-    window.location.href = "/api/builds/" + downloadBuildId + "/download";
+    window.location.href = "/v1/api/builds/" + downloadBuildId + "/download";
     onMessage("📥 Téléchargement lancé...");
   };
 

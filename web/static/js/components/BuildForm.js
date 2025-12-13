@@ -6,7 +6,7 @@ function BuildForm({ onMessage }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/builds/", {
+      const response = await fetch("/v1/api/builds/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

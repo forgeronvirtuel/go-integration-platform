@@ -11,7 +11,7 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
         "🔍 [ProjectDetail] Chargement des builds pour projet",
         project.id
       );
-      const response = await fetch(`/api/builds/project/${project.id}`);
+      const response = await fetch(`/v1/api/builds/project/${project.id}`);
       const data = await response.json();
       console.log("📦 [ProjectDetail] Builds reçus:", data);
 
@@ -50,7 +50,7 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
         "branche:",
         buildBranch
       );
-      const response = await fetch("/api/builds/", {
+      const response = await fetch("/v1/api/builds/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

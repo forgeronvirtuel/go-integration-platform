@@ -2,9 +2,10 @@
 const { useState } = React;
 
 function App() {
-  const [view, setView] = useState("projects"); // "projects", "project-detail", "build-detail"
+  const [view, setView] = useState("projects"); // "projects", "project-detail", "build-detail", "agents", "agent-detail"
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedBuild, setSelectedBuild] = useState(null);
+  const [selectedAgent, setSelectedAgent] = useState(null);
   const [message, setMessage] = useState("");
 
   const handleProjectSelect = (project) => {
@@ -15,6 +16,11 @@ function App() {
   const handleBuildSelect = (build) => {
     setSelectedBuild(build);
     setView("build-detail");
+  };
+
+  const handleAgentSelect = (agent) => {
+    setSelectedAgent(agent);
+    setView("agent-detail");
   };
 
   const handleBackToProjects = () => {
@@ -28,9 +34,21 @@ function App() {
     setSelectedBuild(null);
   };
 
+  const handleBackToAgents = () => {
+    setView("agents");
+    setSelectedAgent(null);
+  };
+
+  const handleNavigate = (targetView) => {
+    setView(targetView);
+    setSelectedProject(null);
+    setSelectedBuild(null);
+    setSelectedAgent(null);
+  };
+
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header currentView={view} onNavigate={handleNavigate} />
 
       <main className="container mx-auto px-4 py-8">
         <MessageBanner message={message} />
@@ -57,6 +75,21 @@ function App() {
             project={selectedProject}
             onMessage={setMessage}
             onBack={handleBackToProjectDetail}
+          />
+        )}
+
+        {view === "agents" && (
+          <AgentsList
+            onMessage={setMessage}
+            onAgentSelect={handleAgentSelect}
+          />
+        )}
+
+        {view === "agent-detail" && selectedAgent && (
+          <AgentDetail
+            agent={selectedAgent}
+            onMessage={setMessage}
+            onBack={handleBackToAgents}
           />
         )}
 
