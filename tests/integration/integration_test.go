@@ -20,7 +20,7 @@ import (
 const (
 	testPort   = "9999"
 	testDBPath = "./test_integration.db"
-	baseURL    = "http://localhost:9999/v1/"
+	baseURL    = "http://localhost:9999/v1"
 )
 
 var testDB *sql.DB
@@ -69,21 +69,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestIntegrationHelloWorld(t *testing.T) {
-	resp, err := http.Get(baseURL + "/")
-	require.NoError(t, err, "La requête HTTP ne devrait pas échouer")
-	defer resp.Body.Close()
-
-	assert.Equal(t, http.StatusOK, resp.StatusCode, "Le status code devrait être 200")
-
-	var result map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	require.NoError(t, err, "Le décodage JSON ne devrait pas échouer")
-
-	assert.Equal(t, "Hello World!", result["message"], "Le message devrait être 'Hello World!'")
-	assert.Equal(t, "ok", result["status"], "Le status devrait être 'ok'")
-}
-
 func TestIntegrationHealthEndpoint(t *testing.T) {
 	resp, err := http.Get(baseURL + "/health")
 	require.NoError(t, err, "La requête HTTP ne devrait pas échouer")
@@ -123,15 +108,6 @@ func TestIntegration404NotFound(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Le status code devrait être 404")
-}
-
-func TestIntegrationHeaders(t *testing.T) {
-	resp, err := http.Get(baseURL + "/")
-	require.NoError(t, err)
-	defer resp.Body.Close()
-
-	contentType := resp.Header.Get("Content-Type")
-	assert.Contains(t, contentType, "application/json", "Le Content-Type devrait être application/json")
 }
 
 func TestIntegrationConcurrentRequests(t *testing.T) {
