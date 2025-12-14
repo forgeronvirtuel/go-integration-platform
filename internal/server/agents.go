@@ -29,6 +29,11 @@ type UpdateAgentLabelsRequest struct {
 	Labels map[string]string `json:"labels" binding:"required"`
 }
 
+type APIError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 // CreateAgent crée un nouvel agent
 func (h *AgentHandler) CreateAgent(c *gin.Context) {
 	var req CreateAgentRequest
@@ -37,10 +42,10 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 		return
 	}
 
-	// Vérifier si un agent avec ce nom existe déjà
+	// Vérifier si uwn agent avec ce nom existe déjà
 	existingAgent, err := database.GetAgentByName(h.DB, req.Name)
 	if err == nil && existingAgent != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Agent with this name already exists"})
+		c.JSON(http.StatusConflict, APIError{Code: ERR_CDE_AGENT_NAME_EXISTS, Message: "Agent with this name already exists"})
 		return
 	}
 
@@ -66,6 +71,19 @@ func (h *AgentHandler) GetAgent(c *gin.Context) {
 	}
 
 	agent, err := database.GetAgentByID(h.DB, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, agent)
+}
+
+// GetAgent récupère un agent par ID
+func (h *AgentHandler) GetAgentByName(c *gin.Context) {
+	name := c.Param("name")
+
+	agent, err := database.GetAgentByName(h.DB, name)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
 		return
@@ -100,41 +118,41 @@ func (h *AgentHandler) GetAllAgents(c *gin.Context) {
 	})
 }
 
-// // UpdateAgentStatus met à jour le statut d'un agent
-// func (h *AgentHandler) UpdateAgentStatus(c *gin.Context) {
-// 	idStr := c.Param("id")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
-// 		return
-// 	}
+// UpdateAgentStatus met à jour le statut d'un agent
+func (h *AgentHandler) UpdateAgentStatus(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		return
+	}
 
-// 	var req UpdateAgentStatusRequest
-// 	if err := c.ShouldBindJSON(&req); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
-// 		return
-// 	}
+	var req UpdateAgentStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
 
-// 	// Vérifier que l'agent existe
-// 	agent, err := database.GetAgentByID(h.DB, id)
-// 	if err != nil {
-// 		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
-// 		return
-// 	}
+	// Vérifier que l'agent existe
+	agent, err := database.GetAgentByID(h.DB, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		return
+	}
 
-// 	// Mettre à jour le statut
-// 	if err := database.UpdateAgentStatus(h.DB, id, req.Status); err != nil {
-// 		log.Error().Err(err).Msg("Erreur lors de la mise à jour du statut de l'agent")
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update agent status"})
-// 		return
-// 	}
+	// Mettre à jour le statut
+	if err := database.UpdateAgentStatus(h.DB, id, req.Status); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la mise à jour du statut de l'agent")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update agent status"})
+		return
+	}
 
-// 	log.Info().Int("agent_id", id).Str("old_status", agent.Status).Str("new_status", req.Status).Msg("Statut de l'agent mis à jour")
+	log.Info().Int("agent_id", id).Str("old_status", agent.Status).Str("new_status", req.Status).Msg("Statut de l'agent mis à jour")
 
-// 	// Récupérer l'agent mis à jour
-// 	updatedAgent, _ := database.GetAgentByID(h.DB, id)
-// 	c.JSON(http.StatusOK, updatedAgent)
-// }
+	// Récupérer l'agent mis à jour
+	updatedAgent, _ := database.GetAgentByID(h.DB, id)
+	c.JSON(http.StatusOK, updatedAgent)
+}
 
 // UpdateAgentLabels met à jour les labels d'un agent
 func (h *AgentHandler) UpdateAgentLabels(c *gin.Context) {
@@ -240,10 +258,11 @@ func setupAgentRoutes(router gin.IRouter, db *sql.DB) {
 	handler := &AgentHandler{DB: db}
 	agents := router.Group("/api/agents")
 	{
-		agents.POST("/register", handler.CreateAgent) // Créer un agent
-		agents.GET("", handler.GetAllAgents)          // Lister tous les agents (avec filtre status optionnel)
-		agents.GET("/:id", handler.GetAgent)          // Récupérer un agent par ID
-		// agents.PUT("/:id/status", handler.UpdateAgentStatus) // Mettre à jour le statut
+		agents.POST("/register", handler.CreateAgent)        // Créer un agent
+		agents.GET("", handler.GetAllAgents)                 // Lister tous les agents (avec filtre status optionnel)
+		agents.GET("/:id", handler.GetAgent)                 // Récupérer un agent par ID
+		agents.GET("/by-name/:name", handler.GetAgentByName) // Récupérer un agent par nom
+		agents.PUT("/:id/status", handler.UpdateAgentStatus) // Mettre à jour le statut
 		agents.PUT("/:id/labels", handler.UpdateAgentLabels) // Mettre à jour les labels
 		agents.POST("/:id/heartbeat", handler.Heartbeat)     // Heartbeat
 		agents.DELETE("/:id", handler.DeleteAgent)           // Supprimer un agent

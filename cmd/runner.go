@@ -51,10 +51,19 @@ var runnerCmd = &cobra.Command{
 			Interface("labels", runnerLabels).
 			Msg("Démarrage du runner")
 
-		// Enregistrer l'agent
-		agentID, err := registerAgent(controlPlaneURL, runnerName, runnerLabels)
+		// Vérifier si un agent avec ce nom existe déjà
+		agentID, err := getAgentId(controlPlaneURL, runnerName)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Impossible d'enregistrer l'agent")
+			log.Fatal().Err(err).Msg("Erreur lors de la vérification de l'existence du nom de l'agent")
+		}
+		log.Info().Int("agent_id", agentID).Msg("Vérification du nom de l'agent terminée")
+
+		// Enregistrer l'agent
+		if agentID == 0 {
+			log.Info().Msg("Agent not registered, processing...")
+			if agentID, err = registerAgent(controlPlaneURL, runnerName, runnerLabels); err != nil {
+				log.Fatal().Err(err).Msg("Impossible d'enregistrer l'agent")
+			}
 		}
 
 		log.Info().Int("agent_id", agentID).Msg("Agent enregistré avec succès")
@@ -113,9 +122,32 @@ func init() {
 	runnerCmd.Flags().StringToStringVarP(&runnerLabels, "labels", "l", defaultLabels, "Labels de l'agent (format: key1=value1,key2=value2)")
 }
 
+func getAgentId(controlPlaneURL, name string) (int, error) {
+	url := fmt.Sprintf("%s/v1/api/agents/by-name/%s", controlPlaneURL, name)
+
+	log.Debug().Str("url", url).Msg("Vérification de l'existence du nom de l'agent")
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, fmt.Errorf("erreur lors de la requête HTTP: %w", err)
+	}
+	defer resp.Body.Close()
+
+	log.Debug().Str("status", resp.Status).Msg("get agent response received")
+	if resp.StatusCode != http.StatusOK {
+		return 0, nil
+	}
+
+	var agentResp AgentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&agentResp); err != nil {
+		return 0, fmt.Errorf("erreur lors de la désérialisation de la réponse: %w", err)
+	}
+
+	return agentResp.ID, nil
+}
+
 // registerAgent enregistre l'agent auprès du control plane
 func registerAgent(controlPlaneURL, name string, labels map[string]string) (int, error) {
-	url := fmt.Sprintf("%s/v1/api/agents", controlPlaneURL)
+	url := fmt.Sprintf("%s/v1/api/agents/register", controlPlaneURL)
 
 	request := AgentRegistrationRequest{
 		Name:   name,

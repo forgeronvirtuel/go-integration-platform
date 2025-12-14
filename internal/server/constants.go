@@ -1,0 +1,5 @@
+package server
+
+const (
+	ERR_CDE_AGENT_NAME_EXISTS = "ERR_CDE_AGENT_NAME_EXISTS"
+)
