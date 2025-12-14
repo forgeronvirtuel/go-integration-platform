@@ -18,7 +18,7 @@ type Deployment struct {
 	CreatedAt time.Time  `json:"created_at"`
 }
 
-// CreateDeploymentsTable crée la table deployments si elle n'existe pas
+// CreateDeploymentsTable creates the deployments table if it does not exist
 func CreateDeploymentsTable(db *sql.DB) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS deployments (
@@ -46,7 +46,7 @@ func CreateDeploymentsTable(db *sql.DB) error {
 	return nil
 }
 
-// CreateDeployment crée un nouveau déploiement
+// CreateDeployment creates a new deployment
 func CreateDeployment(db *sql.DB, buildID int, agentID *int) (*Deployment, error) {
 	startedAt := time.Now()
 	result, err := db.Exec(
@@ -74,12 +74,12 @@ func CreateDeployment(db *sql.DB, buildID int, agentID *int) (*Deployment, error
 	log.Info().
 		Int("deployment_id", deployment.ID).
 		Int("build_id", buildID).
-		Msg("Déploiement créé")
+		Msg("DDeployment created successfully")
 
 	return deployment, nil
 }
 
-// GetDeploymentByID récupère un déploiement par son ID
+// GetDeploymentByID retrieves a deployment by its ID
 func GetDeploymentByID(db *sql.DB, id int) (*Deployment, error) {
 	deployment := &Deployment{}
 	var endedAt sql.NullTime
@@ -111,7 +111,7 @@ func GetDeploymentByID(db *sql.DB, id int) (*Deployment, error) {
 	return deployment, nil
 }
 
-// GetAllDeployments récupère tous les déploiements
+// GetAllDeployments retrieves all deployments
 func GetAllDeployments(db *sql.DB) ([]Deployment, error) {
 	rows, err := db.Query(
 		"SELECT id, build_id, status, agent_id, log_output, started_at, ended_at, created_at FROM deployments ORDER BY created_at DESC",
@@ -152,7 +152,7 @@ func GetAllDeployments(db *sql.DB) ([]Deployment, error) {
 	return deployments, nil
 }
 
-// GetDeploymentsByBuildID récupère tous les déploiements pour un build donné
+// GetDeploymentsByBuildID get all deployments for a build
 func GetDeploymentsByBuildID(db *sql.DB, buildID int) ([]Deployment, error) {
 	rows, err := db.Query(
 		"SELECT id, build_id, status, agent_id, log_output, started_at, ended_at, created_at FROM deployments WHERE build_id = ? ORDER BY created_at DESC",
@@ -194,7 +194,7 @@ func GetDeploymentsByBuildID(db *sql.DB, buildID int) ([]Deployment, error) {
 	return deployments, nil
 }
 
-// GetDeploymentsByAgentID récupère tous les déploiements pour un agent donné
+// GetDeploymentsByAgentID gets all deployments for an agent
 func GetDeploymentsByAgentID(db *sql.DB, agentID int) ([]Deployment, error) {
 	rows, err := db.Query(
 		"SELECT id, build_id, status, agent_id, log_output, started_at, ended_at, created_at FROM deployments WHERE agent_id = ? ORDER BY created_at DESC",
@@ -236,7 +236,7 @@ func GetDeploymentsByAgentID(db *sql.DB, agentID int) ([]Deployment, error) {
 	return deployments, nil
 }
 
-// UpdateDeploymentStatus met à jour le statut d'un déploiement
+// UpdateDeploymentStatus updates the status of a deployment
 func UpdateDeploymentStatus(db *sql.DB, id int, status string) (*Deployment, error) {
 	var endedAt *time.Time
 	if status == "deployed" || status == "failed" {
@@ -255,12 +255,12 @@ func UpdateDeploymentStatus(db *sql.DB, id int, status string) (*Deployment, err
 	log.Info().
 		Int("deployment_id", id).
 		Str("status", status).
-		Msg("Statut du déploiement mis à jour")
+		Msg("Deployment status updated")
 
 	return GetDeploymentByID(db, id)
 }
 
-// UpdateDeploymentLog met à jour les logs d'un déploiement
+// UpdateDeploymentLog updates the log output of a deployment
 func UpdateDeploymentLog(db *sql.DB, id int, logOutput string) error {
 	_, err := db.Exec(
 		"UPDATE deployments SET log_output = ? WHERE id = ?",
@@ -272,12 +272,12 @@ func UpdateDeploymentLog(db *sql.DB, id int, logOutput string) error {
 
 	log.Debug().
 		Int("deployment_id", id).
-		Msg("Logs du déploiement mis à jour")
+		Msg("Deployment logs updated")
 
 	return nil
 }
 
-// UpdateDeploymentAgent met à jour l'agent assigné à un déploiement
+// UpdateDeploymentAgent updates the agent assigned to a deployment
 func UpdateDeploymentAgent(db *sql.DB, id int, agentID *int) (*Deployment, error) {
 	_, err := db.Exec(
 		"UPDATE deployments SET agent_id = ? WHERE id = ?",
@@ -289,12 +289,12 @@ func UpdateDeploymentAgent(db *sql.DB, id int, agentID *int) (*Deployment, error
 
 	log.Info().
 		Int("deployment_id", id).
-		Msg("Agent du déploiement mis à jour")
+		Msg("Deployment agent updated")
 
 	return GetDeploymentByID(db, id)
 }
 
-// DeleteDeployment supprime un déploiement
+// DeleteDeployment deletes a deployment
 func DeleteDeployment(db *sql.DB, id int) error {
 	_, err := db.Exec("DELETE FROM deployments WHERE id = ?", id)
 	if err != nil {
@@ -303,7 +303,7 @@ func DeleteDeployment(db *sql.DB, id int) error {
 
 	log.Info().
 		Int("deployment_id", id).
-		Msg("Déploiement supprimé")
+		Msg("Deployment deleted successfully")
 
 	return nil
 }
