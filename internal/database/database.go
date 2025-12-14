@@ -54,5 +54,11 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 
+	// Table deployments
+	if err := CreateDeploymentsTable(db); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la création de la table deployments")
+		return err
+	}
+
 	return nil
 }

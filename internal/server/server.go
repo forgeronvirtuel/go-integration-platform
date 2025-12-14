@@ -47,6 +47,7 @@ func SetupRouter(db *sql.DB, workspace string) *gin.Engine {
 	setupProjectRoutes(v1, db)
 	setupBuildRoutes(v1, db, workspace)
 	setupAgentRoutes(v1, db)
+	setupDeploymentRoutes(v1, db)
 
 	return router
 }
