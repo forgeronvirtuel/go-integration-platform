@@ -30,7 +30,7 @@ func TestHealthRoute(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	req, _ := http.NewRequest("GET", baseUrl+"/health", nil)
 	w := httptest.NewRecorder()
@@ -46,7 +46,7 @@ func TestRouteStructure(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	// Tester que le routeur est correctement configuré
 	assert.NotNil(t, router, "Le routeur ne devrait pas être nil")
@@ -57,7 +57,7 @@ func TestHealthRouteWithClosedDB(t *testing.T) {
 	db.Close() // Fermer la DB pour simuler une erreur
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	req, _ := http.NewRequest("GET", baseUrl+"/health", nil)
 	w := httptest.NewRecorder()
