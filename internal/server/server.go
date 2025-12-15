@@ -28,8 +28,8 @@ func (h *HealthHandler) Health(c *gin.Context) {
 	})
 }
 
-// SetupRouter crée et configure le router Gin avec toutes les routes
-func SetupRouter(db *sql.DB, workspace string) *gin.Engine {
+// SetupControlPlaneRouter crée et configure le router Gin avec toutes les routes
+func SetupControlPlaneRouter(db *sql.DB, workspace string) *gin.Engine {
 	if workspace == "" {
 		workspace = "./workspace"
 	}
@@ -52,13 +52,13 @@ func SetupRouter(db *sql.DB, workspace string) *gin.Engine {
 	return router
 }
 
-func Start(port string, db *sql.DB, workspace string) {
+func StartControlPlaneServer(address, port string, db *sql.DB, workspace string) {
 	gin.SetMode(gin.ReleaseMode)
 
-	router := SetupRouter(db, workspace)
+	router := SetupControlPlaneRouter(db, workspace)
 
-	log.Info().Str("port", port).Msg("Serveur HTTP démarré")
-	if err := router.Run(":" + port); err != nil {
-		log.Fatal().Err(err).Msg("Impossible de démarrer le serveur")
+	log.Info().Str("address", address).Str("port", port).Msg("Control Plane HTTP server starting...")
+	if err := router.Run(address + ":" + port); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start Control Plane HTTP server")
 	}
 }

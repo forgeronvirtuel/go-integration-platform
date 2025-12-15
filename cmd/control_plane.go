@@ -38,7 +38,7 @@ var controlPlaneCmd = &cobra.Command{
 		log.Info().Msg("Database initialized successfully")
 
 		// Start the server
-		server.Start(port, db, workspaceDir)
+		server.StartControlPlaneServer(address, port, db, workspaceDir)
 	},
 }
 
