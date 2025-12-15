@@ -2,10 +2,11 @@
 const { useState } = React;
 
 function App() {
-  const [view, setView] = useState("projects"); // "projects", "project-detail", "build-detail", "agents", "agent-detail"
+  const [view, setView] = useState("projects"); // "projects", "project-detail", "build-detail", "agents", "agent-detail", "deployments", "deployment-detail"
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedBuild, setSelectedBuild] = useState(null);
   const [selectedAgent, setSelectedAgent] = useState(null);
+  const [selectedDeployment, setSelectedDeployment] = useState(null);
   const [message, setMessage] = useState("");
 
   const handleProjectSelect = (project) => {
@@ -21,6 +22,11 @@ function App() {
   const handleAgentSelect = (agent) => {
     setSelectedAgent(agent);
     setView("agent-detail");
+  };
+
+  const handleDeploymentSelect = (deployment) => {
+    setSelectedDeployment(deployment);
+    setView("deployment-detail");
   };
 
   const handleBackToProjects = () => {
@@ -39,11 +45,17 @@ function App() {
     setSelectedAgent(null);
   };
 
+  const handleBackToDeployments = () => {
+    setView("deployments");
+    setSelectedDeployment(null);
+  };
+
   const handleNavigate = (targetView) => {
     setView(targetView);
     setSelectedProject(null);
     setSelectedBuild(null);
     setSelectedAgent(null);
+    setSelectedDeployment(null);
   };
 
   return (
@@ -90,6 +102,21 @@ function App() {
             agent={selectedAgent}
             onMessage={setMessage}
             onBack={handleBackToAgents}
+          />
+        )}
+
+        {view === "deployments" && (
+          <DeploymentsList
+            onMessage={setMessage}
+            onDeploymentSelect={handleDeploymentSelect}
+          />
+        )}
+
+        {view === "deployment-detail" && selectedDeployment && (
+          <DeploymentDetail
+            deployment={selectedDeployment}
+            onMessage={setMessage}
+            onBack={handleBackToDeployments}
           />
         )}
 

@@ -362,19 +362,21 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
                 ⚙️ Actions
               </h3>
               <div className="space-y-2">
-                {deploymentData.status === "pending" && deploymentData.agent_id && (
-                  <button
-                    onClick={executeDeployment}
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                  >
-                    🚀 Exécuter le déploiement
-                  </button>
-                )}
-                {deploymentData.status === "pending" && !deploymentData.agent_id && (
-                  <p className="text-sm text-gray-600 italic">
-                    Assignez un agent pour exécuter le déploiement
-                  </p>
-                )}
+                {deploymentData.status === "pending" &&
+                  deploymentData.agent_id && (
+                    <button
+                      onClick={executeDeployment}
+                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    >
+                      🚀 Exécuter le déploiement
+                    </button>
+                  )}
+                {deploymentData.status === "pending" &&
+                  !deploymentData.agent_id && (
+                    <p className="text-sm text-gray-600 italic">
+                      Assignez un agent pour exécuter le déploiement
+                    </p>
+                  )}
                 {deploymentData.status === "deploying" && (
                   <>
                     <button

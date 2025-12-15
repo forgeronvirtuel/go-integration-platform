@@ -27,6 +27,17 @@ function Header({ currentView, onNavigate }) {
               📦 Projets
             </button>
             <button
+              onClick={() => onNavigate("deployments")}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                currentView === "deployments" ||
+                currentView === "deployment-detail"
+                  ? "bg-blue-700 font-semibold"
+                  : "bg-blue-500 hover:bg-blue-700"
+              }`}
+            >
+              🚀 Déploiements
+            </button>
+            <button
               onClick={() => onNavigate("agents")}
               className={`px-4 py-2 rounded-lg transition-colors ${
                 currentView === "agents" || currentView === "agent-detail"
