@@ -1,7 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -289,6 +292,95 @@ func (h *DeploymentHandler) DeleteDeployment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Deployment deleted successfully"})
 }
 
+// ExecuteDeployment triggers the execution of a deployment by sending a request to the runner
+func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid deployment ID"})
+		return
+	}
+
+	// Get the deployment
+	deployment, err := database.GetDeploymentByID(h.DB, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Deployment not found"})
+		return
+	}
+
+	// Check that the deployment has an agent assigned
+	if deployment.AgentID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Deployment has no agent assigned"})
+		return
+	}
+
+	// Get the agent to retrieve its URL
+	agent, err := database.GetAgentByID(h.DB, *deployment.AgentID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		return
+	}
+
+	// Check that the agent has a URL configured
+	if agent.URL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Agent has no URL configured"})
+		return
+	}
+
+	// Check that the agent is online
+	if agent.Status != "ONLINE" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Agent is not online"})
+		return
+	}
+
+	// Update deployment status to deploying
+	_, err = database.UpdateDeploymentStatus(h.DB, id, "deploying")
+	if err != nil {
+		log.Error().Err(err).Int("deployment_id", id).Msg("Failed to update deployment status to deploying")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update deployment status"})
+		return
+	}
+
+	// Prepare the request to send to the runner
+	// Get the control plane URL from the request (we'll use the Host header)
+	controlPlaneURL := fmt.Sprintf("http://%s", c.Request.Host)
+
+	requestPayload := map[string]interface{}{
+		"deployment_id":     id,
+		"build_id":          deployment.BuildID,
+		"control_plane_url": controlPlaneURL,
+	}
+
+	jsonData, err := json.Marshal(requestPayload)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to marshal request payload")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare request"})
+		return
+	}
+
+	// Send the request to the runner
+	runnerURL := fmt.Sprintf("%s/deploy", agent.URL)
+	resp, err := http.Post(runnerURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Error().Err(err).Str("runner_url", runnerURL).Msg("Failed to send request to runner")
+		// Revert deployment status to pending
+		database.UpdateDeploymentStatus(h.DB, id, "pending")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Failed to contact runner"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+		log.Error().Int("status_code", resp.StatusCode).Str("runner_url", runnerURL).Msg("Runner returned error")
+		// Revert deployment status to pending
+		database.UpdateDeploymentStatus(h.DB, id, "pending")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Runner rejected the request"})
+		return
+	}
+
+	log.Info().Int("deployment_id", id).Int("agent_id", *deployment.AgentID).Msg("Deployment execution started")
+	c.JSON(http.StatusOK, gin.H{"message": "Deployment execution started"})
+}
+
 // setupDeploymentRoutes  configure the routes for deployments
 func setupDeploymentRoutes(v1 gin.IRouter, db *sql.DB) {
 	handler := &DeploymentHandler{DB: db}
@@ -303,6 +395,7 @@ func setupDeploymentRoutes(v1 gin.IRouter, db *sql.DB) {
 		deployments.PUT("/:id/status", handler.UpdateDeploymentStatus)
 		deployments.PUT("/:id/agent", handler.UpdateDeploymentAgent)
 		deployments.PUT("/:id/log", handler.UpdateDeploymentLog)
+		deployments.POST("/:id/execute", handler.ExecuteDeployment)
 		deployments.DELETE("/:id", handler.DeleteDeployment)
 	}
 }

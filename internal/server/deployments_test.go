@@ -50,7 +50,7 @@ func TestCreateDeploymentEndpoint(t *testing.T) {
 	database.UpdateBuildStatus(db, build.ID, "success", "Build completed")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	reqBody := CreateDeploymentRequest{
 		BuildID: build.ID,
@@ -88,7 +88,7 @@ func TestCreateDeploymentWithAgent(t *testing.T) {
 	database.UpdateAgentStatus(db, agent.ID, "ONLINE")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	agentID := agent.ID
 	reqBody := CreateDeploymentRequest{
@@ -118,7 +118,7 @@ func TestCreateDeploymentBuildNotFound(t *testing.T) {
 	defer db.Close()
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	reqBody := CreateDeploymentRequest{
 		BuildID: 999, // Build inexistant
@@ -144,7 +144,7 @@ func TestCreateDeploymentBuildNotSuccess(t *testing.T) {
 	// Le build est en "pending" par défaut
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	reqBody := CreateDeploymentRequest{
 		BuildID: build.ID,
@@ -175,7 +175,7 @@ func TestCreateDeploymentAgentNotOnline(t *testing.T) {
 	// L'agent est OFFLINE par défaut
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	agentID := agent.ID
 	reqBody := CreateDeploymentRequest{
@@ -190,7 +190,8 @@ func TestCreateDeploymentAgentNotOnline(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	// Creating a deployment with an offline agent should succeed (status check is done at execution time)
+	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
 func TestGetDeploymentEndpoint(t *testing.T) {
@@ -203,7 +204,7 @@ func TestGetDeploymentEndpoint(t *testing.T) {
 	deployment, _ := database.CreateDeployment(db, build.ID, nil)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	req, _ := http.NewRequest("GET", baseUrl+"/deployments/"+string(rune(deployment.ID+'0')), nil)
 	w := httptest.NewRecorder()
@@ -233,7 +234,7 @@ func TestGetAllDeploymentsEndpoint(t *testing.T) {
 	database.CreateDeployment(db, build1.ID, nil)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	req, _ := http.NewRequest("GET", baseUrl+"/deployments", nil)
 	w := httptest.NewRecorder()
@@ -264,7 +265,7 @@ func TestGetDeploymentsByBuildIDEndpoint(t *testing.T) {
 	database.CreateDeployment(db, build2.ID, nil)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	req, _ := http.NewRequest("GET", baseUrl+"/deployments/by-build?build_id="+string(rune(build1.ID+'0')), nil)
 	w := httptest.NewRecorder()
@@ -296,7 +297,7 @@ func TestGetDeploymentsByAgentIDEndpoint(t *testing.T) {
 	database.CreateDeployment(db, build.ID, &agent2ID)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	req, _ := http.NewRequest("GET", baseUrl+"/deployments/by-agent?agent_id="+string(rune(agent1.ID+'0')), nil)
 	w := httptest.NewRecorder()
@@ -321,7 +322,7 @@ func TestUpdateDeploymentStatusEndpoint(t *testing.T) {
 	deployment, _ := database.CreateDeployment(db, build.ID, nil)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	reqBody := UpdateDeploymentStatusRequest{
 		Status: "deploying",
@@ -353,7 +354,7 @@ func TestUpdateDeploymentStatusInvalid(t *testing.T) {
 	deployment, _ := database.CreateDeployment(db, build.ID, nil)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	reqBody := UpdateDeploymentStatusRequest{
 		Status: "invalid-status",
@@ -381,7 +382,7 @@ func TestUpdateDeploymentAgentEndpoint(t *testing.T) {
 	database.UpdateAgentStatus(db, agent.ID, "ONLINE")
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	agentID := agent.ID
 	reqBody := UpdateDeploymentAgentRequest{
@@ -414,7 +415,7 @@ func TestUpdateDeploymentLogEndpoint(t *testing.T) {
 	deployment, _ := database.CreateDeployment(db, build.ID, nil)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	reqBody := UpdateDeploymentLogRequest{
 		LogOutput: "Deployment started\nCopying files...",
@@ -446,7 +447,7 @@ func TestDeleteDeploymentEndpoint(t *testing.T) {
 	deployment, _ := database.CreateDeployment(db, build.ID, nil)
 
 	gin.SetMode(gin.TestMode)
-	router := SetupRouter(db, "")
+	router := SetupControlPlaneRouter(db, "")
 
 	req, _ := http.NewRequest("DELETE", baseUrl+"/deployments/"+string(rune(deployment.ID+'0')), nil)
 	w := httptest.NewRecorder()
