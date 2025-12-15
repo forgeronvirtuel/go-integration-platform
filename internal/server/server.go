@@ -1,8 +1,14 @@
 package server
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
+	"encoding/json"
+	"forgeronvirtuel/gip/internal/deployment"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -61,4 +67,75 @@ func StartControlPlaneServer(address, port string, db *sql.DB, workspace string)
 	if err := router.Run(address + ":" + port); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start Control Plane HTTP server")
 	}
+}
+
+func StartRunnerServer(runnerID int, runnerURL, controlPlaneURL string, stopChan chan struct{}, wg *sync.WaitGroup) {
+	gin.SetMode(gin.ReleaseMode)
+
+	// Extract port from runnerURL
+	port := "8080"
+	if len(runnerURL) > 7 && runnerURL[:7] == "http://" {
+		parts := bytes.Split([]byte(runnerURL[7:]), []byte(":"))
+		if len(parts) > 1 {
+			port = string(parts[1])
+		}
+	}
+
+	mux := http.NewServeMux()
+
+	// Endpoint pour recevoir les demandes de déploiement
+	mux.HandleFunc("/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var deployRequest struct {
+			DeploymentID    int    `json:"deployment_id"`
+			BuildID         int    `json:"build_id"`
+			ControlPlaneURL string `json:"control_plane_url"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&deployRequest); err != nil {
+			log.Error().Err(err).Msg("Failed to decode deployment request")
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		log.Info().
+			Int("deployment_id", deployRequest.DeploymentID).
+			Int("build_id", deployRequest.BuildID).
+			Msg("Received deployment request")
+
+		// Lancer le déploiement dans une goroutine pour ne pas bloquer la réponse
+		go deployment.ExecuteDeployment(runnerID, deployRequest.DeploymentID, deployRequest.BuildID, deployRequest.ControlPlaneURL)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Deployment started"})
+	})
+
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
+	}
+
+	go func() {
+		log.Info().Str("port", port).Msg("Starting HTTP server")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error().Err(err).Msg("HTTP server error")
+		}
+	}()
+
+	<-stopChan
+	log.Info().Msg("Stopping HTTP server")
+
+	timeoutContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(timeoutContext); err != nil {
+		log.Error().Err(err).Msg("Error during HTTP server shutdown")
+	} else {
+		log.Info().Msg("HTTP server stopped gracefully")
+	}
+
 }
