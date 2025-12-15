@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -14,13 +16,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type AgentRegistrationRequest struct {
+type runnerRegistrationRequest struct {
 	Name   string            `json:"name"`
 	Labels map[string]string `json:"labels"`
 	URL    string            `json:"url"`
 }
 
-type AgentResponse struct {
+type runnerResponse struct {
 	ID         int               `json:"id"`
 	Name       string            `json:"name"`
 	Labels     map[string]string `json:"labels"`
@@ -36,8 +38,8 @@ type HeartbeatResponse struct {
 
 var runnerCmd = &cobra.Command{
 	Use:   "runner",
-	Short: "Start the agent runner",
-	Long:  `Start an agent runner that registers with the control plane and execute deployment ordered by control plane.`,
+	Short: "Start the runner runner",
+	Long:  `Start an runner runner that registers with the control plane and execute deployment ordered by control plane.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info().
 			Str("control_plane", controlPlaneURL).
@@ -45,62 +47,67 @@ var runnerCmd = &cobra.Command{
 			Str("address", address).
 			Str("port", port).
 			Interface("labels", runnerLabels).
-			Msg("Démarrage du runner")
+			Msg("Starting runner")
 
-		// Vérifier si un agent avec ce nom existe déjà
-		agentID, err := getAgentId(controlPlaneURL, runnerName)
+		// Check if a runner with this name already exists
+		runnerID, err := getRunnerId(controlPlaneURL, runnerName)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Erreur lors de la vérification de l'existence du nom de l'agent")
+			log.Fatal().Err(err).Msg("failed to get runner by name")
 		}
-		log.Info().Int("agent_id", agentID).Msg("Vérification du nom de l'agent terminée")
+		log.Info().Int("runner_id", runnerID).Msg("Runner name verification completed")
 
-		// Enregistrer l'agent
-		if agentID == 0 {
-			log.Info().Msg("Agent not registered, processing...")
-			if agentID, err = registerAgent(controlPlaneURL, runnerName, runnerLabels, runnerURL); err != nil {
-				log.Fatal().Err(err).Msg("Impossible d'enregistrer l'agent")
+		// Register the runner
+		if runnerID == 0 {
+			log.Info().Msg("runner not registered, processing...")
+			if runnerID, err = registerRunner(controlPlaneURL, runnerName, runnerLabels, runnerURL); err != nil {
+				log.Fatal().Err(err).Msg("failed to register runner")
 			}
 		} else {
-			// Si l'agent existe déjà, mettre à jour son URL
-			if err := updateAgentURL(controlPlaneURL, agentID, runnerURL); err != nil {
-				log.Warn().Err(err).Msg("Impossible de mettre à jour l'URL de l'agent")
+			// If the runner already exists, update its URL
+			if err := updateRunnerURL(controlPlaneURL, runnerID, runnerURL); err != nil {
+				log.Warn().Err(err).Msg("failed to update runner URL")
 			}
 		}
 
-		log.Info().Int("agent_id", agentID).Msg("Agent enregistré avec succès")
+		log.Info().Int("runner_id", runnerID).Msg("runner sucessfully registered")
 
-		// Mettre l'agent en ONLINE
-		if err := updateAgentStatus(controlPlaneURL, agentID, "ONLINE"); err != nil {
-			log.Warn().Err(err).Msg("Impossible de mettre l'agent en ONLINE")
+		// Set the runner to ONLINE
+		if err := updateRunnerStatus(controlPlaneURL, runnerID, "ONLINE"); err != nil {
+			log.Warn().Err(err).Msg("failed to set runner status to ONLINE")
 		} else {
-			log.Info().Msg("Agent mis en ONLINE")
+			log.Info().Msg("runner set to ONLINE")
 		}
 
-		// Démarrer la goroutine de heartbeat
+		// Start the heartbeat goroutine
 		stopChan := make(chan struct{})
-		go startHeartbeat(controlPlaneURL, agentID, stopChan)
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go startHeartbeat(controlPlaneURL, runnerID, stopChan, &wg)
 
-		// Démarrer le serveur HTTP pour recevoir les demandes de déploiement
-		go startHTTPServer(agentID, controlPlaneURL, stopChan)
+		// Start the HTTP server to receive deployment requests
+		wg.Add(1)
+		go startHTTPServer(runnerID, controlPlaneURL, stopChan, &wg)
 
-		// Attendre un signal d'arrêt
+		// Wait for a stop signal
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 		<-sigChan
-		log.Info().Msg("Signal d'arrêt reçu, arrêt du runner...")
+		log.Info().Msg("stop signal received, stopping runner...")
 
-		// Arrêter la goroutine de heartbeat
+		// Stop the heartbeat goroutine
 		close(stopChan)
 
-		// Mettre l'agent en OFFLINE avant de quitter
-		if err := updateAgentStatus(controlPlaneURL, agentID, "OFFLINE"); err != nil {
-			log.Warn().Err(err).Msg("Impossible de mettre l'agent en OFFLINE")
+		// Set the runner to OFFLINE before exiting
+		if err := updateRunnerStatus(controlPlaneURL, runnerID, "OFFLINE"); err != nil {
+			log.Warn().Err(err).Msg("failed to set runner status to OFFLINE")
 		} else {
-			log.Info().Msg("Agent mis en OFFLINE")
+			log.Info().Msg("runner set to OFFLINE")
 		}
 
-		log.Info().Msg("Runner arrêté proprement")
+		wg.Wait()
+
+		log.Info().Msg("Runner stopped gracefully")
 	},
 }
 
@@ -116,40 +123,40 @@ func init() {
 	runnerCmd.Flags().StringVarP(&controlPlaneURL, "control-plane", "c", "", "URL of the control plane (e.g., http://localhost:3000)")
 	runnerCmd.MarkFlagRequired("control-plane")
 
-	runnerCmd.Flags().StringVarP(&runnerName, "name", "n", hostname, "Name of the agent (default is hostname)")
-	runnerCmd.Flags().StringToStringVarP(&runnerLabels, "labels", "l", nil, "Agent labels (format: key1=value1,key2=value2)")
-	runnerCmd.Flags().StringVarP(&port, "port", "p", "3000", "Server listening port")
+	runnerCmd.Flags().StringVarP(&runnerName, "name", "n", hostname, "Name of the runner (default is hostname)")
+	runnerCmd.Flags().StringVarP(&runnerURL, "url", "u", "http://localhost:3000", "URL of the runner (e.g., http://my-runner:3000)")
+	runnerCmd.Flags().StringToStringVarP(&runnerLabels, "labels", "l", nil, "runner labels (format: key1=value1,key2=value2)")
 	runnerCmd.Flags().StringVarP(&workspaceDir, "workspace", "w", "./workspace", "Workspace directory for projects")
 }
 
-func getAgentId(controlPlaneURL, name string) (int, error) {
-	url := fmt.Sprintf("%s/v1/api/agents/by-name/%s", controlPlaneURL, name)
+func getRunnerId(controlPlaneURL, name string) (int, error) {
+	url := fmt.Sprintf("%s/v1/api/runners/by-name/%s", controlPlaneURL, name)
 
-	log.Debug().Str("url", url).Msg("Vérification de l'existence du nom de l'agent")
+	log.Debug().Str("url", url).Msg("Checking if runner name exists")
 	resp, err := http.Get(url)
 	if err != nil {
-		return 0, fmt.Errorf("erreur lors de la requête HTTP: %w", err)
+		return 0, fmt.Errorf("error during HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	log.Debug().Str("status", resp.Status).Msg("get agent response received")
+	log.Debug().Str("status", resp.Status).Msg("get runner response received")
 	if resp.StatusCode != http.StatusOK {
 		return 0, nil
 	}
 
-	var agentResp AgentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&agentResp); err != nil {
-		return 0, fmt.Errorf("erreur lors de la désérialisation de la réponse: %w", err)
+	var runnerResp runnerResponse
+	if err := json.NewDecoder(resp.Body).Decode(&runnerResp); err != nil {
+		return 0, fmt.Errorf("error during response deserialization: %w", err)
 	}
 
-	return agentResp.ID, nil
+	return runnerResp.ID, nil
 }
 
-// registerAgent enregistre l'agent auprès du control plane
-func registerAgent(controlPlaneURL, name string, labels map[string]string, url string) (int, error) {
-	urlEndpoint := fmt.Sprintf("%s/v1/api/agents/register", controlPlaneURL)
+// registerRunner registers the runner with the control plane
+func registerRunner(controlPlaneURL, name string, labels map[string]string, url string) (int, error) {
+	urlEndpoint := fmt.Sprintf("%s/v1/api/runners/register", controlPlaneURL)
 
-	request := AgentRegistrationRequest{
+	request := runnerRegistrationRequest{
 		Name:   name,
 		Labels: labels,
 		URL:    url,
@@ -157,42 +164,42 @@ func registerAgent(controlPlaneURL, name string, labels map[string]string, url s
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
-		return 0, fmt.Errorf("erreur lors de la sérialisation JSON: %w", err)
+		return 0, fmt.Errorf("error during JSON serialization: %w", err)
 	}
 
-	log.Debug().Str("url", urlEndpoint).Str("body", string(jsonData)).Msg("Envoi de la requête d'enregistrement")
+	log.Debug().Str("url", urlEndpoint).Str("body", string(jsonData)).Msg("Sending registration request")
 
 	resp, err := http.Post(urlEndpoint, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return 0, fmt.Errorf("erreur lors de la requête HTTP: %w", err)
+		return 0, fmt.Errorf("error during HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return 0, fmt.Errorf("code de statut inattendu: %d", resp.StatusCode)
+		return 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	var agentResp AgentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&agentResp); err != nil {
-		return 0, fmt.Errorf("erreur lors de la désérialisation de la réponse: %w", err)
+	var runnerResp runnerResponse
+	if err := json.NewDecoder(resp.Body).Decode(&runnerResp); err != nil {
+		return 0, fmt.Errorf("error during response deserialization: %w", err)
 	}
 
-	return agentResp.ID, nil
+	return runnerResp.ID, nil
 }
 
-// updateAgentStatus met à jour le statut de l'agent
-func updateAgentStatus(controlPlaneURL string, agentID int, status string) error {
-	url := fmt.Sprintf("%s/v1/api/agents/%d/status", controlPlaneURL, agentID)
+// updateRunnerStatus updates the status of the runner
+func updateRunnerStatus(controlPlaneURL string, runnerID int, status string) error {
+	url := fmt.Sprintf("%s/v1/api/runners/%d/status", controlPlaneURL, runnerID)
 
 	statusData := map[string]string{"status": status}
 	jsonData, err := json.Marshal(statusData)
 	if err != nil {
-		return fmt.Errorf("erreur lors de la sérialisation JSON: %w", err)
+		return fmt.Errorf("error during JSON serialization : %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("erreur lors de la création de la requête: %w", err)
+		return fmt.Errorf("error during request creation: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -210,17 +217,18 @@ func updateAgentStatus(controlPlaneURL string, agentID int, status string) error
 }
 
 // startHeartbeat envoie des heartbeats réguliers au control plane
-func startHeartbeat(controlPlaneURL string, agentID int, stopChan chan struct{}) {
+func startHeartbeat(controlPlaneURL string, runnerID int, stopChan chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	// Envoyer un premier heartbeat immédiatement
-	sendHeartbeat(controlPlaneURL, agentID)
+	sendHeartbeat(controlPlaneURL, runnerID)
 
 	for {
 		select {
 		case <-ticker.C:
-			sendHeartbeat(controlPlaneURL, agentID)
+			sendHeartbeat(controlPlaneURL, runnerID)
 		case <-stopChan:
 			log.Info().Msg("Arrêt de la goroutine de heartbeat")
 			return
@@ -229,8 +237,8 @@ func startHeartbeat(controlPlaneURL string, agentID int, stopChan chan struct{})
 }
 
 // sendHeartbeat envoie un heartbeat au control plane
-func sendHeartbeat(controlPlaneURL string, agentID int) {
-	url := fmt.Sprintf("%s/v1/api/agents/%d/heartbeat", controlPlaneURL, agentID)
+func sendHeartbeat(controlPlaneURL string, runnerID int) {
+	url := fmt.Sprintf("%s/v1/api/runners/%d/heartbeat", controlPlaneURL, runnerID)
 
 	log.Debug().Str("url", url).Msg("Envoi du heartbeat")
 
@@ -258,50 +266,47 @@ func sendHeartbeat(controlPlaneURL string, agentID int) {
 		Msg("Heartbeat envoyé avec succès")
 }
 
-// updateAgentURL met à jour l'URL de l'agent
-func updateAgentURL(controlPlaneURL string, agentID int, url string) error {
-	urlEndpoint := fmt.Sprintf("%s/v1/api/agents/%d/url", controlPlaneURL, agentID)
+// updateRunnerURL updates the URL of the runner
+func updateRunnerURL(controlPlaneURL string, runnerID int, url string) error {
+	urlEndpoint := fmt.Sprintf("%s/v1/api/runners/%d/url", controlPlaneURL, runnerID)
 
 	urlData := map[string]string{"url": url}
 	jsonData, err := json.Marshal(urlData)
 	if err != nil {
-		return fmt.Errorf("erreur lors de la sérialisation JSON: %w", err)
+		return fmt.Errorf("error during JSON serialization: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPut, urlEndpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("erreur lors de la création de la requête: %w", err)
+		return fmt.Errorf("error during request creation: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("erreur lors de la requête HTTP: %w", err)
+		return fmt.Errorf("error during HTTP request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("code de statut inattendu: %d", resp.StatusCode)
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	return nil
 }
 
 // startHTTPServer démarre le serveur HTTP pour recevoir les demandes de déploiement
-func startHTTPServer(agentID int, controlPlaneURL string, stopChan chan struct{}) {
+func startHTTPServer(runnerID int, controlPlaneURL string, stopChan chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	// Extract port from runnerURL
-	var port string
+	port := "8080"
 	if len(runnerURL) > 7 && runnerURL[:7] == "http://" {
 		parts := bytes.Split([]byte(runnerURL[7:]), []byte(":"))
 		if len(parts) > 1 {
 			port = string(parts[1])
-		} else {
-			port = "8080"
 		}
-	} else {
-		port = "8080"
 	}
-
 	mux := http.NewServeMux()
 
 	// Endpoint pour recevoir les demandes de déploiement
@@ -329,7 +334,7 @@ func startHTTPServer(agentID int, controlPlaneURL string, stopChan chan struct{}
 			Msg("Received deployment request")
 
 		// Lancer le déploiement dans une goroutine pour ne pas bloquer la réponse
-		go executeDeployment(agentID, deployRequest.DeploymentID, deployRequest.BuildID, deployRequest.ControlPlaneURL)
+		go executeDeployment(runnerID, deployRequest.DeploymentID, deployRequest.BuildID, deployRequest.ControlPlaneURL)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
@@ -350,11 +355,18 @@ func startHTTPServer(agentID int, controlPlaneURL string, stopChan chan struct{}
 
 	<-stopChan
 	log.Info().Msg("Stopping HTTP server")
-	server.Close()
+
+	timeoutContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(timeoutContext); err != nil {
+		log.Error().Err(err).Msg("Error during HTTP server shutdown")
+	} else {
+		log.Info().Msg("HTTP server stopped gracefully")
+	}
 }
 
 // executeDeployment télécharge et exécute un build
-func executeDeployment(agentID, deploymentID, buildID int, controlPlaneURL string) {
+func executeDeployment(runnerID, deploymentID, buildID int, controlPlaneURL string) {
 	log.Info().
 		Int("deployment_id", deploymentID).
 		Int("build_id", buildID).
