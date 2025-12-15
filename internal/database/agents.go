@@ -12,6 +12,7 @@ import (
 type Agent struct {
 	ID         int               `json:"id"`
 	Name       string            `json:"name"`
+	URL        string            `json:"url"` // URL pour contacter le runner
 	Labels     map[string]string `json:"labels"`
 	Status     string            `json:"status"` // ONLINE, OFFLINE, DRAINING
 	LastSeenAt time.Time         `json:"last_seen_at"`
@@ -24,6 +25,7 @@ func CreateAgentsTable(db *sql.DB) error {
 	CREATE TABLE IF NOT EXISTS agents (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL UNIQUE,
+		url TEXT NOT NULL DEFAULT '',
 		labels TEXT NOT NULL DEFAULT '{}',
 		status TEXT NOT NULL DEFAULT 'OFFLINE' CHECK(status IN ('ONLINE', 'OFFLINE', 'DRAINING')),
 		last_seen_at DATETIME,
@@ -50,8 +52,8 @@ func CreateAgent(db *sql.DB, name string, labels map[string]string) (*Agent, err
 	}
 
 	query := `
-		INSERT INTO agents (name, labels, status, last_seen_at)
-		VALUES (?, ?, 'OFFLINE', CURRENT_TIMESTAMP)
+		INSERT INTO agents (name, url, labels, status, last_seen_at)
+		VALUES (?, '', ?, 'OFFLINE', CURRENT_TIMESTAMP)
 	`
 
 	result, err := db.Exec(query, name, string(labelsJSON))
@@ -70,7 +72,7 @@ func CreateAgent(db *sql.DB, name string, labels map[string]string) (*Agent, err
 // GetAgentByID récupère un agent par son ID
 func GetAgentByID(db *sql.DB, id int) (*Agent, error) {
 	query := `
-		SELECT id, name, labels, status, last_seen_at, created_at
+		SELECT id, name, url, labels, status, last_seen_at, created_at
 		FROM agents
 		WHERE id = ?
 	`
@@ -82,6 +84,7 @@ func GetAgentByID(db *sql.DB, id int) (*Agent, error) {
 	err := db.QueryRow(query, id).Scan(
 		&agent.ID,
 		&agent.Name,
+		&agent.URL,
 		&labelsJSON,
 		&agent.Status,
 		&lastSeenAt,
@@ -106,7 +109,7 @@ func GetAgentByID(db *sql.DB, id int) (*Agent, error) {
 // GetAgentByName récupère un agent par son nom (hostname)
 func GetAgentByName(db *sql.DB, name string) (*Agent, error) {
 	query := `
-		SELECT id, name, labels, status, last_seen_at, created_at
+		SELECT id, name, url, labels, status, last_seen_at, created_at
 		FROM agents
 		WHERE name = ?
 	`
@@ -118,6 +121,7 @@ func GetAgentByName(db *sql.DB, name string) (*Agent, error) {
 	err := db.QueryRow(query, name).Scan(
 		&agent.ID,
 		&agent.Name,
+		&agent.URL,
 		&labelsJSON,
 		&agent.Status,
 		&lastSeenAt,
@@ -142,7 +146,7 @@ func GetAgentByName(db *sql.DB, name string) (*Agent, error) {
 // GetAllAgents récupère tous les agents
 func GetAllAgents(db *sql.DB) ([]Agent, error) {
 	query := `
-		SELECT id, name, labels, status, last_seen_at, created_at
+		SELECT id, name, url, labels, status, last_seen_at, created_at
 		FROM agents
 		ORDER BY created_at DESC
 	`
@@ -162,6 +166,7 @@ func GetAllAgents(db *sql.DB) ([]Agent, error) {
 		err := rows.Scan(
 			&agent.ID,
 			&agent.Name,
+			&agent.URL,
 			&labelsJSON,
 			&agent.Status,
 			&lastSeenAt,
@@ -189,7 +194,7 @@ func GetAllAgents(db *sql.DB) ([]Agent, error) {
 // GetAgentsByStatus récupère les agents par statut
 func GetAgentsByStatus(db *sql.DB, status string) ([]Agent, error) {
 	query := `
-		SELECT id, name, labels, status, last_seen_at, created_at
+		SELECT id, name, url, labels, status, last_seen_at, created_at
 		FROM agents
 		WHERE status = ?
 		ORDER BY last_seen_at DESC
@@ -210,6 +215,7 @@ func GetAgentsByStatus(db *sql.DB, status string) ([]Agent, error) {
 		err := rows.Scan(
 			&agent.ID,
 			&agent.Name,
+			&agent.URL,
 			&labelsJSON,
 			&agent.Status,
 			&lastSeenAt,
@@ -260,6 +266,18 @@ func UpdateAgentLabels(db *sql.DB, id int, labels map[string]string) error {
 	`
 
 	_, err = db.Exec(query, string(labelsJSON), id)
+	return err
+}
+
+// UpdateAgentURL met à jour l'URL d'un agent
+func UpdateAgentURL(db *sql.DB, id int, url string) error {
+	query := `
+		UPDATE agents
+		SET url = ?
+		WHERE id = ?
+	`
+
+	_, err := db.Exec(query, url, id)
 	return err
 }
 

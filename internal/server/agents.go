@@ -19,6 +19,7 @@ type AgentHandler struct {
 type CreateAgentRequest struct {
 	Name   string            `json:"name" binding:"required"`
 	Labels map[string]string `json:"labels"`
+	URL    string            `json:"url"`
 }
 
 type UpdateAgentStatusRequest struct {
@@ -27,6 +28,10 @@ type UpdateAgentStatusRequest struct {
 
 type UpdateAgentLabelsRequest struct {
 	Labels map[string]string `json:"labels" binding:"required"`
+}
+
+type UpdateAgentURLRequest struct {
+	URL string `json:"url" binding:"required"`
 }
 
 type APIError struct {
@@ -55,6 +60,14 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 		log.Error().Err(err).Msg("Erreur lors de la création de l'agent")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create agent"})
 		return
+	}
+
+	// Mettre à jour l'URL si fournie
+	if req.URL != "" {
+		if err := database.UpdateAgentURL(h.DB, agent.ID, req.URL); err != nil {
+			log.Warn().Err(err).Int("agent_id", agent.ID).Msg("Failed to update agent URL")
+		}
+		agent.URL = req.URL
 	}
 
 	log.Info().Int("agent_id", agent.ID).Str("name", agent.Name).Msg("Agent créé avec succès")
@@ -190,6 +203,42 @@ func (h *AgentHandler) UpdateAgentLabels(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedAgent)
 }
 
+// UpdateAgentURL met à jour l'URL d'un agent
+func (h *AgentHandler) UpdateAgentURL(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		return
+	}
+
+	var req UpdateAgentURLRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	// Vérifier que l'agent existe
+	_, err = database.GetAgentByID(h.DB, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		return
+	}
+
+	// Mettre à jour l'URL
+	if err := database.UpdateAgentURL(h.DB, id, req.URL); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la mise à jour de l'URL de l'agent")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update agent URL"})
+		return
+	}
+
+	log.Info().Int("agent_id", id).Str("url", req.URL).Msg("URL de l'agent mis à jour")
+
+	// Récupérer l'agent mis à jour
+	updatedAgent, _ := database.GetAgentByID(h.DB, id)
+	c.JSON(http.StatusOK, updatedAgent)
+}
+
 // Heartbeat enregistre un heartbeat pour un agent
 func (h *AgentHandler) Heartbeat(c *gin.Context) {
 	idStr := c.Param("id")
@@ -264,6 +313,7 @@ func setupAgentRoutes(router gin.IRouter, db *sql.DB) {
 		agents.GET("/by-name/:name", handler.GetAgentByName) // Récupérer un agent par nom
 		agents.PUT("/:id/status", handler.UpdateAgentStatus) // Mettre à jour le statut
 		agents.PUT("/:id/labels", handler.UpdateAgentLabels) // Mettre à jour les labels
+		agents.PUT("/:id/url", handler.UpdateAgentURL)       // Mettre à jour l'URL
 		agents.POST("/:id/heartbeat", handler.Heartbeat)     // Heartbeat
 		agents.DELETE("/:id", handler.DeleteAgent)           // Supprimer un agent
 	}
