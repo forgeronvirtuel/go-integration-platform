@@ -9,18 +9,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	port         string
-	dbPath       string
-	workspaceDir string
-)
-
-var serveCmd = &cobra.Command{
+var controlPlaneCmd = &cobra.Command{
 	Use:   "control-plane",
 	Short: "Start the control plane server",
 	Long:  `The control plane server manages projects and orchestrates operations.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Info().Str("port", port).Str("db", dbPath).Str("workspace", workspaceDir).Msg("Starting control plane server")
+		log.Info().
+			Str("address", address).
+			Str("port", port).
+			Str("db", dbPath).
+			Str("workspace", workspaceDir).
+			Msg("Starting control plane server")
 
 		// Validate and check the workspace directory
 		if err := workspacemanager.ValidateWorkspaceDir(workspaceDir); err != nil {
@@ -44,9 +43,9 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(serveCmd)
-
-	serveCmd.Flags().StringVarP(&port, "port", "p", "3000", "Server listening port")
-	serveCmd.Flags().StringVarP(&dbPath, "database", "d", "./data.db", "Path to the SQLite database file")
-	serveCmd.Flags().StringVarP(&workspaceDir, "workspace", "w", "./workspace", "Workspace directory for projects")
+	rootCmd.AddCommand(controlPlaneCmd)
+	controlPlaneCmd.Flags().StringVarP(&address, "address", "a", "0.0.0.0", "Server listening address")
+	controlPlaneCmd.Flags().StringVarP(&port, "port", "p", "3000", "Server listening port")
+	controlPlaneCmd.Flags().StringVarP(&dbPath, "database", "d", "./data.db", "Path to the SQLite database file")
+	controlPlaneCmd.Flags().StringVarP(&workspaceDir, "workspace", "w", "./workspace", "Workspace directory for projects")
 }
