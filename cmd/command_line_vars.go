@@ -2,6 +2,7 @@ package cmd
 
 var (
 	controlPlaneURL string
+	runnerURL       string
 	runnerName      string
 	runnerLabels    map[string]string
 	address         string
