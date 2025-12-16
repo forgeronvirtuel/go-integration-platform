@@ -6,7 +6,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Response with deployments array
    */
   async getAll() {
-    const response = await fetch("/v1/deployments");
+    const response = await fetch(`${mainAPIURL}/deployments`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -19,7 +19,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Deployment object
    */
   async getById(id) {
-    const response = await fetch(`/v1/deployments/${id}`);
+    const response = await fetch(`${mainAPIURL}/deployments/${id}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -34,7 +34,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Created deployment
    */
   async create(payload) {
-    const response = await fetch("/v1/deployments", {
+    const response = await fetch(`${mainAPIURL}/deployments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -57,7 +57,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Updated deployment
    */
   async updateStatus(id, status) {
-    const response = await fetch(`/v1/deployments/${id}/status`, {
+    const response = await fetch(`${mainAPIURL}/deployments/${id}/status`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -79,7 +79,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Updated deployment
    */
   async updateRunner(id, runnerId) {
-    const response = await fetch(`/v1/deployments/${id}/runner`, {
+    const response = await fetch(`${mainAPIURL}/deployments/${id}/runner`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -101,7 +101,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Execution result
    */
   async execute(id) {
-    const response = await fetch(`/v1/deployments/${id}/execute`, {
+    const response = await fetch(`${mainAPIURL}/deployments/${id}/execute`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -122,7 +122,7 @@ const DeploymentsAPI = {
    * @returns {Promise<void>}
    */
   async delete(id) {
-    const response = await fetch(`/v1/deployments/${id}`, {
+    const response = await fetch(`${mainAPIURL}/deployments/${id}`, {
       method: "DELETE",
     });
 

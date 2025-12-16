@@ -6,7 +6,7 @@ const BuildsAPI = {
    * @returns {Promise<Object>} Response with builds array
    */
   async getAll() {
-    const response = await fetch("/v1/api/builds");
+    const response = await fetch(`${mainAPIURL}/builds`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -19,7 +19,7 @@ const BuildsAPI = {
    * @returns {Promise<Object>} Build object
    */
   async getById(id) {
-    const response = await fetch(`/v1/api/builds/${id}`);
+    const response = await fetch(`${mainAPIURL}/builds/${id}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -32,7 +32,7 @@ const BuildsAPI = {
    * @returns {Promise<Array>} Array of builds
    */
   async getByProjectId(projectId) {
-    const response = await fetch(`/v1/api/builds/project/${projectId}`);
+    const response = await fetch(`${mainAPIURL}/builds/project/${projectId}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -47,7 +47,7 @@ const BuildsAPI = {
    * @returns {Promise<Object>} Created build
    */
   async create(payload) {
-    const response = await fetch("/v1/api/builds/", {
+    const response = await fetch(`${mainAPIURL}/builds/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -69,6 +69,6 @@ const BuildsAPI = {
    * @returns {string} Download URL
    */
   getDownloadUrl(id) {
-    return `/v1/api/builds/${id}/download`;
+    return `${mainAPIURL}/builds/${id}/download`;
   },
 };

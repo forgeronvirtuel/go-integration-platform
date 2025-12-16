@@ -7,7 +7,9 @@ const RunnersAPI = {
    * @returns {Promise<Object>} Response with runners array
    */
   async getAll(status = null) {
-    const url = status ? `/v1/api/runners?status=${status}` : "/v1/api/runners";
+    const url = status
+      ? `${mainAPIURL}/runners?status=${status}`
+      : `${mainAPIURL}/runners`;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -22,7 +24,7 @@ const RunnersAPI = {
    * @returns {Promise<Object>} Runner object
    */
   async getById(id) {
-    const response = await fetch(`/v1/api/runners/${id}`);
+    const response = await fetch(`${mainAPIURL}/runners/${id}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -36,7 +38,7 @@ const RunnersAPI = {
    * @returns {Promise<Object>} Updated runner
    */
   async updateStatus(id, status) {
-    const response = await fetch(`/v1/api/runners/${id}/status`, {
+    const response = await fetch(`${mainAPIURL}/runners/${id}/status`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -58,7 +60,7 @@ const RunnersAPI = {
    * @returns {Promise<Object>} Updated runner
    */
   async updateLabels(id, labels) {
-    const response = await fetch(`/v1/api/runners/${id}/labels`, {
+    const response = await fetch(`${mainAPIURL}/runners/${id}/labels`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -79,7 +81,7 @@ const RunnersAPI = {
    * @returns {Promise<void>}
    */
   async delete(id) {
-    const response = await fetch(`/v1/api/runners/${id}`, {
+    const response = await fetch(`${mainAPIURL}/runners/${id}`, {
       method: "DELETE",
     });
 
