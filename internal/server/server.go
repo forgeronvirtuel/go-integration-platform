@@ -66,9 +66,11 @@ func StartControlPlaneServer(address, port string, db *sql.DB, workspace string)
 	if err := router.Run(address + ":" + port); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start Control Plane HTTP server")
 	}
+	log.Info().Msg("Control Plane HTTP server stopped.")
 }
 
 func StartRunnerServer(runnerID int, runnerURL, controlPlaneURL string, stopChan chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	gin.SetMode(gin.ReleaseMode)
 
 	// Extract port from runnerURL
@@ -83,7 +85,7 @@ func StartRunnerServer(runnerID int, runnerURL, controlPlaneURL string, stopChan
 	mux := http.NewServeMux()
 
 	// Endpoint pour recevoir les demandes de déploiement
-	mux.HandleFunc("/deploy", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -119,11 +121,16 @@ func StartRunnerServer(runnerID int, runnerURL, controlPlaneURL string, stopChan
 		Handler: mux,
 	}
 
+	var wg1 sync.WaitGroup
+	wg1.Add(1)
 	go func() {
+		defer wg1.Done()
 		log.Info().Str("port", port).Msg("Starting HTTP server")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error().Err(err).Msg("HTTP server error")
 		}
+		log.Info().Msg("Runner HTTP server stopped.")
+		time.Sleep(1 * time.Second)
 	}()
 
 	<-stopChan
@@ -137,4 +144,6 @@ func StartRunnerServer(runnerID int, runnerURL, controlPlaneURL string, stopChan
 		log.Info().Msg("HTTP server stopped gracefully")
 	}
 
+	log.Info().Msg("Waiting for HTTP server goroutine to finish")
+	wg1.Wait()
 }

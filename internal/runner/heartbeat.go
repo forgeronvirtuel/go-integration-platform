@@ -23,9 +23,11 @@ func StartHeartbeat(controlPlaneURL string, runnerID int, stopChan chan struct{}
 		select {
 		case <-ticker.C:
 			SendHeartbeat(controlPlaneURL, runnerID)
-		case <-stopChan:
-			log.Info().Msg("Arrêt de la goroutine de heartbeat")
-			return
+		case _, ok := <-stopChan:
+			if !ok {
+				log.Info().Msg("Arrêt de la goroutine de heartbeat")
+				return
+			}
 		}
 	}
 }
