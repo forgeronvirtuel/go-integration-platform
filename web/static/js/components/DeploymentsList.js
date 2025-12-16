@@ -5,7 +5,7 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
   const [deployments, setDeployments] = useState([]);
   const [builds, setBuilds] = useState({});
   const [projects, setProjects] = useState({});
-  const [agents, setAgents] = useState({});
+  const [runners, setRunners] = useState({});
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -27,7 +27,7 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
 
       setDeployments(data.deployments || []);
 
-      // Charger les builds, projects et agents associés
+      // Charger les builds, projects et runners associés
       await loadRelatedData(data.deployments || []);
 
       setLoading(false);
@@ -58,14 +58,14 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
       });
       setProjects(projectsMap);
 
-      // Charger tous les agents
-      const agentsResponse = await fetch("/v1/api/agents");
-      const agentsData = await agentsResponse.json();
-      const agentsMap = {};
-      (agentsData.agents || []).forEach((agent) => {
-        agentsMap[agent.id] = agent;
+      // Charger tous les runners
+      const runnersResponse = await fetch("/v1/api/runners");
+      const runnersData = await runnersResponse.json();
+      const runnersMap = {};
+      (runnersData.runners || []).forEach((runner) => {
+        runnersMap[runner.id] = runner;
       });
-      setAgents(agentsMap);
+      setRunners(runnersMap);
     } catch (error) {
       console.error("🚀 [DeploymentsList] Error loading related data:", error);
     }
@@ -170,8 +170,8 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
           {deployments.map((deployment) => {
             const build = builds[deployment.build_id];
             const project = build ? projects[build.project_id] : null;
-            const agent = deployment.agent_id
-              ? agents[deployment.agent_id]
+            const runner = deployment.runner_id
+              ? runners[deployment.runner_id]
               : null;
 
             return (
@@ -207,10 +207,10 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
                         </span>
                       </div>
 
-                      {agent && (
+                      {runner && (
                         <div className="flex items-center text-sm text-gray-600">
-                          <span className="font-medium w-32">🤖 Agent:</span>
-                          <span>{agent.name}</span>
+                          <span className="font-medium w-32">🤖 Runner:</span>
+                          <span>{runner.name}</span>
                         </div>
                       )}
 

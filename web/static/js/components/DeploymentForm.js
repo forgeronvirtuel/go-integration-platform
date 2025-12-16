@@ -3,16 +3,16 @@ const { useState, useEffect } = React;
 
 function DeploymentForm({ onMessage, onDeploymentCreated }) {
   const [builds, setBuilds] = useState([]);
-  const [agents, setAgents] = useState([]);
+  const [runners, setRunners] = useState([]);
   const [buildID, setBuildID] = useState("");
-  const [agentID, setAgentID] = useState("");
+  const [runnerID, setRunnerID] = useState("");
   const [loading, setLoading] = useState(false);
 
   console.log("📋 [DeploymentForm] Component mounted");
 
   useEffect(() => {
     loadBuilds();
-    loadAgents();
+    loadRunners();
   }, []);
 
   const loadBuilds = async () => {
@@ -29,13 +29,13 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
     }
   };
 
-  const loadAgents = async () => {
+  const loadRunners = async () => {
     try {
-      const response = await fetch("/v1/api/agents?status=ONLINE");
+      const response = await fetch("/v1/api/runners?status=ONLINE");
       const data = await response.json();
-      setAgents(data.agents || []);
+      setRunners(data.runners || []);
     } catch (error) {
-      console.error("📋 [DeploymentForm] Error loading agents:", error);
+      console.error("📋 [DeploymentForm] Error loading runners:", error);
     }
   };
 
@@ -52,15 +52,15 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
     try {
       console.log("📋 [DeploymentForm] Creating deployment...", {
         buildID,
-        agentID,
+        runnerID,
       });
 
       const payload = {
         build_id: parseInt(buildID),
       };
 
-      if (agentID) {
-        payload.agent_id = parseInt(agentID);
+      if (runnerID) {
+        payload.runner_id = parseInt(runnerID);
       }
 
       const response = await fetch("/v1/deployments", {
@@ -120,23 +120,23 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Agent (optionnel)
+            Runner (optionnel)
           </label>
           <select
-            value={agentID}
-            onChange={(e) => setAgentID(e.target.value)}
+            value={runnerID}
+            onChange={(e) => setRunnerID(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">-- Assigner plus tard --</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name} (ID: {agent.id})
+            {runners.map((runner) => (
+              <option key={runner.id} value={runner.id}>
+                {runner.name} (ID: {runner.id})
               </option>
             ))}
           </select>
-          {agents.length === 0 && (
+          {runners.length === 0 && (
             <p className="text-sm text-gray-500 mt-1">
-              Aucun agent en ligne disponible
+              Aucun runner en ligne disponible
             </p>
           )}
         </div>

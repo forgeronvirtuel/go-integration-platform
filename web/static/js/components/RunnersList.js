@@ -1,22 +1,22 @@
-// Composant AgentsList
+// Composant RunnersList
 const { useState, useEffect } = React;
 
-function AgentsList({ onMessage, onAgentSelect }) {
-  const [agents, setAgents] = useState([]);
+function RunnersList({ onMessage, onRunnerSelect }) {
+  const [runners, setRunners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
 
-  console.log("🤖 [AgentsList] Component mounted");
+  console.log("🤖 [RunnersList] Component mounted");
 
-  const loadAgents = async () => {
+  const loadRunners = async () => {
     try {
-      console.log("🤖 [AgentsList] Loading agents...");
+      console.log("🤖 [RunnersList] Loading runners...");
       setLoading(true);
 
       const url =
         statusFilter !== "all"
-          ? `/v1/api/agents?status=${statusFilter}`
-          : "/v1/api/agents";
+          ? `/v1/api/runners?status=${statusFilter}`
+          : "/v1/api/runners";
 
       const response = await fetch(url);
 
@@ -25,21 +25,21 @@ function AgentsList({ onMessage, onAgentSelect }) {
       }
 
       const data = await response.json();
-      console.log("🤖 [AgentsList] Agents loaded:", data);
+      console.log("🤖 [RunnersList] Runners loaded:", data);
 
-      setAgents(data.agents || []);
+      setRunners(data.runners || []);
       setLoading(false);
     } catch (error) {
-      console.error("🤖 [AgentsList] Error loading agents:", error);
-      onMessage(`Erreur lors du chargement des agents: ${error.message}`);
+      console.error("🤖 [RunnersList] Error loading runners:", error);
+      onMessage(`Erreur lors du chargement des runners: ${error.message}`);
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAgents();
+    loadRunners();
     // Rafraîchir toutes les 10 secondes
-    const interval = setInterval(loadAgents, 10000);
+    const interval = setInterval(loadRunners, 10000);
     return () => clearInterval(interval);
   }, [statusFilter]);
 
@@ -95,11 +95,11 @@ function AgentsList({ onMessage, onAgentSelect }) {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">
-            🤖 Agents / Runners
+            🤖 Runners / Runners
           </h2>
           <p className="text-gray-600 mt-1">
-            {agents.length} agent{agents.length !== 1 ? "s" : ""} enregistré
-            {agents.length !== 1 ? "s" : ""}
+            {runners.length} runner{runners.length !== 1 ? "s" : ""} enregistré
+            {runners.length !== 1 ? "s" : ""}
           </p>
         </div>
 
@@ -117,7 +117,7 @@ function AgentsList({ onMessage, onAgentSelect }) {
           </select>
 
           <button
-            onClick={loadAgents}
+            onClick={loadRunners}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             🔄 Rafraîchir
@@ -125,9 +125,9 @@ function AgentsList({ onMessage, onAgentSelect }) {
         </div>
       </div>
 
-      {agents.length === 0 ? (
+      {runners.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600">Aucun agent trouvé</p>
+          <p className="text-gray-600">Aucun runner trouvé</p>
           <p className="text-sm text-gray-500 mt-2">
             Démarrez un runner avec:{" "}
             <code className="bg-gray-200 px-2 py-1 rounded">
@@ -137,53 +137,53 @@ function AgentsList({ onMessage, onAgentSelect }) {
         </div>
       ) : (
         <div className="grid gap-4">
-          {agents.map((agent) => (
+          {runners.map((runner) => (
             <div
-              key={agent.id}
+              key={runner.id}
               className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => onAgentSelect(agent)}
+              onClick={() => onRunnerSelect(runner)}
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3">
                     <h3 className="text-xl font-semibold text-gray-800">
-                      {agent.name}
+                      {runner.name}
                     </h3>
-                    {getStatusBadge(agent.status)}
+                    {getStatusBadge(runner.status)}
                   </div>
 
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center text-sm text-gray-600">
                       <span className="font-medium w-32">ID:</span>
-                      <span>#{agent.id}</span>
+                      <span>#{runner.id}</span>
                     </div>
 
                     <div className="flex items-center text-sm text-gray-600">
                       <span className="font-medium w-32">Créé:</span>
-                      <span>{formatDate(agent.created_at)}</span>
+                      <span>{formatDate(runner.created_at)}</span>
                     </div>
 
                     <div className="flex items-center text-sm text-gray-600">
                       <span className="font-medium w-32">Dernier signal:</span>
                       <span
                         className={
-                          agent.last_seen_at ? "text-blue-600 font-medium" : ""
+                          runner.last_seen_at ? "text-blue-600 font-medium" : ""
                         }
                       >
-                        {agent.last_seen_at
-                          ? getTimeSince(agent.last_seen_at)
+                        {runner.last_seen_at
+                          ? getTimeSince(runner.last_seen_at)
                           : "Jamais"}
                       </span>
                     </div>
                   </div>
 
-                  {agent.labels && Object.keys(agent.labels).length > 0 && (
+                  {runner.labels && Object.keys(runner.labels).length > 0 && (
                     <div className="mt-4">
                       <span className="text-sm font-medium text-gray-700">
                         Labels:
                       </span>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {Object.entries(agent.labels).map(([key, value]) => (
+                        {Object.entries(runner.labels).map(([key, value]) => (
                           <span
                             key={key}
                             className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200"

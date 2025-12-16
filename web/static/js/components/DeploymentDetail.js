@@ -5,11 +5,11 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
   const [deploymentData, setDeploymentData] = useState(deployment);
   const [build, setBuild] = useState(null);
   const [project, setProject] = useState(null);
-  const [agent, setAgent] = useState(null);
-  const [availableAgents, setAvailableAgents] = useState([]);
+  const [runner, setRunner] = useState(null);
+  const [availableRunners, setAvailableRunners] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [editingAgent, setEditingAgent] = useState(false);
-  const [selectedAgentID, setSelectedAgentID] = useState("");
+  const [editingRunner, setEditingRunner] = useState(false);
+  const [selectedRunnerID, setSelectedRunnerID] = useState("");
 
   console.log(
     "🔍 [DeploymentDetail] Component mounted with deployment:",
@@ -18,7 +18,7 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
 
   useEffect(() => {
     loadDeploymentDetails();
-    loadAvailableAgents();
+    loadAvailableRunners();
     // Rafraîchir toutes les 5 secondes
     const interval = setInterval(loadDeploymentDetails, 5000);
     return () => clearInterval(interval);
@@ -50,15 +50,15 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
       const projectData = await projectResponse.json();
       setProject(projectData);
 
-      // Charger l'agent si assigné
-      if (deploymentData.agent_id) {
-        const agentResponse = await fetch(
-          `/v1/api/agents/${deploymentData.agent_id}`
+      // Charger l'runner si assigné
+      if (deploymentData.runner_id) {
+        const runnerResponse = await fetch(
+          `/v1/api/runners/${deploymentData.runner_id}`
         );
-        const agentData = await agentResponse.json();
-        setAgent(agentData);
+        const runnerData = await runnerResponse.json();
+        setRunner(runnerData);
       } else {
-        setAgent(null);
+        setRunner(null);
       }
 
       setLoading(false);
@@ -69,13 +69,13 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
     }
   };
 
-  const loadAvailableAgents = async () => {
+  const loadAvailableRunners = async () => {
     try {
-      const response = await fetch("/v1/api/agents?status=ONLINE");
+      const response = await fetch("/v1/api/runners?status=ONLINE");
       const data = await response.json();
-      setAvailableAgents(data.agents || []);
+      setAvailableRunners(data.runners || []);
     } catch (error) {
-      console.error("🔍 [DeploymentDetail] Error loading agents:", error);
+      console.error("🔍 [DeploymentDetail] Error loading runners:", error);
     }
   };
 
@@ -104,15 +104,18 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
     }
   };
 
-  const updateAgent = async () => {
+  const updateRunner = async () => {
     try {
-      console.log("🔍 [DeploymentDetail] Updating agent to:", selectedAgentID);
+      console.log(
+        "🔍 [DeploymentDetail] Updating runner to:",
+        selectedRunnerID
+      );
 
       const payload = {
-        agent_id: selectedAgentID ? parseInt(selectedAgentID) : null,
+        runner_id: selectedRunnerID ? parseInt(selectedRunnerID) : null,
       };
 
-      const response = await fetch(`/v1/deployments/${deployment.id}/agent`, {
+      const response = await fetch(`/v1/deployments/${deployment.id}/runner`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -122,16 +125,16 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to update agent");
+        throw new Error(error.error || "Failed to update runner");
       }
 
       const data = await response.json();
       setDeploymentData(data);
-      setEditingAgent(false);
-      onMessage("Agent mis à jour avec succès");
+      setEditingRunner(false);
+      onMessage("Runner mis à jour avec succès");
       loadDeploymentDetails();
     } catch (error) {
-      console.error("🔍 [DeploymentDetail] Error updating agent:", error);
+      console.error("🔍 [DeploymentDetail] Error updating runner:", error);
       onMessage(`Erreur: ${error.message}`);
     }
   };
@@ -304,51 +307,51 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-sm font-semibold text-gray-700">
-                  🤖 Agent
+                  🤖 Runner
                 </h3>
                 <button
                   onClick={() => {
-                    setEditingAgent(!editingAgent);
-                    setSelectedAgentID(deploymentData.agent_id || "");
+                    setEditingRunner(!editingRunner);
+                    setSelectedRunnerID(deploymentData.runner_id || "");
                   }}
                   className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
-                  {editingAgent ? "❌ Annuler" : "✏️ Modifier"}
+                  {editingRunner ? "❌ Annuler" : "✏️ Modifier"}
                 </button>
               </div>
 
-              {!editingAgent ? (
-                agent ? (
+              {!editingRunner ? (
+                runner ? (
                   <div className="text-gray-800">
                     <p>
-                      <strong>Nom:</strong> {agent.name}
+                      <strong>Nom:</strong> {runner.name}
                     </p>
                     <p>
-                      <strong>ID:</strong> #{agent.id}
+                      <strong>ID:</strong> #{runner.id}
                     </p>
                     <p>
-                      <strong>Statut:</strong> {agent.status}
+                      <strong>Statut:</strong> {runner.status}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-gray-500">Aucun agent assigné</p>
+                  <p className="text-gray-500">Aucun runner assigné</p>
                 )
               ) : (
                 <div className="space-y-3">
                   <select
-                    value={selectedAgentID}
-                    onChange={(e) => setSelectedAgentID(e.target.value)}
+                    value={selectedRunnerID}
+                    onChange={(e) => setSelectedRunnerID(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   >
-                    <option value="">-- Aucun agent --</option>
-                    {availableAgents.map((a) => (
+                    <option value="">-- Aucun runner --</option>
+                    {availableRunners.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name} (#{a.id})
                       </option>
                     ))}
                   </select>
                   <button
-                    onClick={updateAgent}
+                    onClick={updateRunner}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                   >
                     💾 Sauvegarder
@@ -363,7 +366,7 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
               </h3>
               <div className="space-y-2">
                 {deploymentData.status === "pending" &&
-                  deploymentData.agent_id && (
+                  deploymentData.runner_id && (
                     <button
                       onClick={executeDeployment}
                       className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
@@ -372,9 +375,9 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
                     </button>
                   )}
                 {deploymentData.status === "pending" &&
-                  !deploymentData.agent_id && (
+                  !deploymentData.runner_id && (
                     <p className="text-sm text-gray-600 italic">
-                      Assignez un agent pour exécuter le déploiement
+                      Assignez un runner pour exécuter le déploiement
                     </p>
                   )}
                 {deploymentData.status === "deploying" && (

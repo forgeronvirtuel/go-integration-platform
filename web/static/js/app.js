@@ -2,10 +2,10 @@
 const { useState } = React;
 
 function App() {
-  const [view, setView] = useState("projects"); // "projects", "project-detail", "build-detail", "agents", "agent-detail", "deployments", "deployment-detail"
+  const [view, setView] = useState("projects"); // "projects", "project-detail", "build-detail", "runners", "runner-detail", "deployments", "deployment-detail"
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedBuild, setSelectedBuild] = useState(null);
-  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [selectedRunner, setSelectedRunner] = useState(null);
   const [selectedDeployment, setSelectedDeployment] = useState(null);
   const [message, setMessage] = useState("");
 
@@ -19,9 +19,9 @@ function App() {
     setView("build-detail");
   };
 
-  const handleAgentSelect = (agent) => {
-    setSelectedAgent(agent);
-    setView("agent-detail");
+  const handleRunnerSelect = (runner) => {
+    setSelectedRunner(runner);
+    setView("runner-detail");
   };
 
   const handleDeploymentSelect = (deployment) => {
@@ -40,9 +40,9 @@ function App() {
     setSelectedBuild(null);
   };
 
-  const handleBackToAgents = () => {
-    setView("agents");
-    setSelectedAgent(null);
+  const handleBackToRunners = () => {
+    setView("runners");
+    setSelectedRunner(null);
   };
 
   const handleBackToDeployments = () => {
@@ -54,7 +54,7 @@ function App() {
     setView(targetView);
     setSelectedProject(null);
     setSelectedBuild(null);
-    setSelectedAgent(null);
+    setSelectedRunner(null);
     setSelectedDeployment(null);
   };
 
@@ -90,18 +90,18 @@ function App() {
           />
         )}
 
-        {view === "agents" && (
-          <AgentsList
+        {view === "runners" && (
+          <RunnersList
             onMessage={setMessage}
-            onAgentSelect={handleAgentSelect}
+            onRunnerSelect={handleRunnerSelect}
           />
         )}
 
-        {view === "agent-detail" && selectedAgent && (
-          <AgentDetail
-            agent={selectedAgent}
+        {view === "runner-detail" && selectedRunner && (
+          <RunnerDetail
+            runner={selectedRunner}
             onMessage={setMessage}
-            onBack={handleBackToAgents}
+            onBack={handleBackToRunners}
           />
         )}
 

@@ -1,32 +1,35 @@
-// Composant AgentDetail
+// Composant RunnerDetail
 const { useState, useEffect } = React;
 
-function AgentDetail({ agent, onMessage, onBack }) {
-  const [agentData, setAgentData] = useState(agent);
+function RunnerDetail({ runner, onMessage, onBack }) {
+  const [runnerData, setRunnerData] = useState(runner);
   const [loading, setLoading] = useState(false);
   const [editingLabels, setEditingLabels] = useState(false);
   const [newLabels, setNewLabels] = useState({});
 
-  console.log("🔍 [AgentDetail] Component mounted with agent:", agent);
+  console.log("🔍 [RunnerDetail] Component mounted with runner:", runner);
 
-  const loadAgentDetails = async () => {
+  const loadRunnerDetails = async () => {
     try {
-      console.log("🔍 [AgentDetail] Loading agent details for ID:", agent.id);
+      console.log(
+        "🔍 [RunnerDetail] Loading runner details for ID:",
+        runner.id
+      );
       setLoading(true);
 
-      const response = await fetch(`/v1/api/agents/${agent.id}`);
+      const response = await fetch(`/v1/api/runners/${runner.id}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("🔍 [AgentDetail] Agent details loaded:", data);
+      console.log("🔍 [RunnerDetail] Runner details loaded:", data);
 
-      setAgentData(data);
+      setRunnerData(data);
       setLoading(false);
     } catch (error) {
-      console.error("🔍 [AgentDetail] Error loading agent details:", error);
+      console.error("🔍 [RunnerDetail] Error loading runner details:", error);
       onMessage(`Erreur lors du chargement des détails: ${error.message}`);
       setLoading(false);
     }
@@ -34,9 +37,9 @@ function AgentDetail({ agent, onMessage, onBack }) {
 
   const updateStatus = async (newStatus) => {
     try {
-      console.log("🔍 [AgentDetail] Updating status to:", newStatus);
+      console.log("🔍 [RunnerDetail] Updating status to:", newStatus);
 
-      const response = await fetch(`/v1/api/agents/${agent.id}/status`, {
+      const response = await fetch(`/v1/api/runners/${runner.id}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -49,21 +52,21 @@ function AgentDetail({ agent, onMessage, onBack }) {
       }
 
       const data = await response.json();
-      console.log("🔍 [AgentDetail] Status updated:", data);
+      console.log("🔍 [RunnerDetail] Status updated:", data);
 
-      setAgentData(data);
+      setRunnerData(data);
       onMessage(`Statut mis à jour: ${newStatus}`);
     } catch (error) {
-      console.error("🔍 [AgentDetail] Error updating status:", error);
+      console.error("🔍 [RunnerDetail] Error updating status:", error);
       onMessage(`Erreur lors de la mise à jour du statut: ${error.message}`);
     }
   };
 
   const updateLabels = async () => {
     try {
-      console.log("🔍 [AgentDetail] Updating labels:", newLabels);
+      console.log("🔍 [RunnerDetail] Updating labels:", newLabels);
 
-      const response = await fetch(`/v1/api/agents/${agent.id}/labels`, {
+      const response = await fetch(`/v1/api/runners/${runner.id}/labels`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -76,30 +79,30 @@ function AgentDetail({ agent, onMessage, onBack }) {
       }
 
       const data = await response.json();
-      console.log("🔍 [AgentDetail] Labels updated:", data);
+      console.log("🔍 [RunnerDetail] Labels updated:", data);
 
-      setAgentData(data);
+      setRunnerData(data);
       setEditingLabels(false);
       onMessage("Labels mis à jour avec succès");
     } catch (error) {
-      console.error("🔍 [AgentDetail] Error updating labels:", error);
+      console.error("🔍 [RunnerDetail] Error updating labels:", error);
       onMessage(`Erreur lors de la mise à jour des labels: ${error.message}`);
     }
   };
 
-  const deleteAgent = async () => {
+  const deleteRunner = async () => {
     if (
       !confirm(
-        `Êtes-vous sûr de vouloir supprimer l'agent "${agentData.name}" ?`
+        `Êtes-vous sûr de vouloir supprimer l'runner "${runnerData.name}" ?`
       )
     ) {
       return;
     }
 
     try {
-      console.log("🔍 [AgentDetail] Deleting agent:", agent.id);
+      console.log("🔍 [RunnerDetail] Deleting runner:", runner.id);
 
-      const response = await fetch(`/v1/api/agents/${agent.id}`, {
+      const response = await fetch(`/v1/api/runners/${runner.id}`, {
         method: "DELETE",
       });
 
@@ -107,25 +110,25 @@ function AgentDetail({ agent, onMessage, onBack }) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log("🔍 [AgentDetail] Agent deleted successfully");
-      onMessage("Agent supprimé avec succès");
+      console.log("🔍 [RunnerDetail] Runner deleted successfully");
+      onMessage("Runner supprimé avec succès");
       onBack();
     } catch (error) {
-      console.error("🔍 [AgentDetail] Error deleting agent:", error);
+      console.error("🔍 [RunnerDetail] Error deleting runner:", error);
       onMessage(`Erreur lors de la suppression: ${error.message}`);
     }
   };
 
   useEffect(() => {
-    loadAgentDetails();
+    loadRunnerDetails();
     // Rafraîchir toutes les 5 secondes
-    const interval = setInterval(loadAgentDetails, 5000);
+    const interval = setInterval(loadRunnerDetails, 5000);
     return () => clearInterval(interval);
-  }, [agent.id]);
+  }, [runner.id]);
 
   useEffect(() => {
-    setNewLabels(agentData.labels || {});
-  }, [agentData.labels]);
+    setNewLabels(runnerData.labels || {});
+  }, [runnerData.labels]);
 
   const getStatusBadge = (status) => {
     const statusColors = {
@@ -175,7 +178,7 @@ function AgentDetail({ agent, onMessage, onBack }) {
     }`;
   };
 
-  if (loading && !agentData.name) {
+  if (loading && !runnerData.name) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -198,11 +201,11 @@ function AgentDetail({ agent, onMessage, onBack }) {
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              🤖 {agentData.name}
+              🤖 {runnerData.name}
             </h2>
-            <p className="text-gray-600">ID: #{agentData.id}</p>
+            <p className="text-gray-600">ID: #{runnerData.id}</p>
           </div>
-          {getStatusBadge(agentData.status)}
+          {getStatusBadge(runnerData.status)}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -212,7 +215,7 @@ function AgentDetail({ agent, onMessage, onBack }) {
                 📅 Date de création
               </h3>
               <p className="text-gray-800">
-                {formatDate(agentData.created_at)}
+                {formatDate(runnerData.created_at)}
               </p>
             </div>
 
@@ -221,14 +224,14 @@ function AgentDetail({ agent, onMessage, onBack }) {
                 💓 Dernier heartbeat
               </h3>
               <p className="text-gray-800">
-                {agentData.last_seen_at ? (
+                {runnerData.last_seen_at ? (
                   <>
                     <span className="text-blue-600 font-medium">
-                      {getTimeSince(agentData.last_seen_at)}
+                      {getTimeSince(runnerData.last_seen_at)}
                     </span>
                     <br />
                     <span className="text-sm text-gray-600">
-                      {formatDate(agentData.last_seen_at)}
+                      {formatDate(runnerData.last_seen_at)}
                     </span>
                   </>
                 ) : (
@@ -244,7 +247,7 @@ function AgentDetail({ agent, onMessage, onBack }) {
                 ⚙️ Actions
               </h3>
               <div className="space-y-2">
-                {agentData.status !== "ONLINE" && (
+                {runnerData.status !== "ONLINE" && (
                   <button
                     onClick={() => updateStatus("ONLINE")}
                     className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
@@ -252,7 +255,7 @@ function AgentDetail({ agent, onMessage, onBack }) {
                     ✅ Mettre en ligne
                   </button>
                 )}
-                {agentData.status !== "OFFLINE" && (
+                {runnerData.status !== "OFFLINE" && (
                   <button
                     onClick={() => updateStatus("OFFLINE")}
                     className="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
@@ -260,7 +263,7 @@ function AgentDetail({ agent, onMessage, onBack }) {
                     🚫 Mettre hors ligne
                   </button>
                 )}
-                {agentData.status !== "DRAINING" && (
+                {runnerData.status !== "DRAINING" && (
                   <button
                     onClick={() => updateStatus("DRAINING")}
                     className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
@@ -269,10 +272,10 @@ function AgentDetail({ agent, onMessage, onBack }) {
                   </button>
                 )}
                 <button
-                  onClick={deleteAgent}
+                  onClick={deleteRunner}
                   className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                 >
-                  🗑️ Supprimer l'agent
+                  🗑️ Supprimer l'runner
                 </button>
               </div>
             </div>
@@ -292,9 +295,10 @@ function AgentDetail({ agent, onMessage, onBack }) {
 
           {!editingLabels ? (
             <div>
-              {agentData.labels && Object.keys(agentData.labels).length > 0 ? (
+              {runnerData.labels &&
+              Object.keys(runnerData.labels).length > 0 ? (
                 <div className="flex flex-wrap gap-3">
-                  {Object.entries(agentData.labels).map(([key, value]) => (
+                  {Object.entries(runnerData.labels).map(([key, value]) => (
                     <div
                       key={key}
                       className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-200"
