@@ -19,14 +19,6 @@ function BuildDetail({ build, project, onMessage, onBack }) {
     }
   };
 
-  React.useEffect(() => {
-    // Auto-refresh si le build est en cours
-    if (buildData.status === "building" || buildData.status === "pending") {
-      const interval = setInterval(refreshBuild, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [buildData.status]);
-
   const getStatusColor = (status) => {
     switch (status) {
       case "success":
