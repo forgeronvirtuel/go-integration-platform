@@ -16,13 +16,7 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
       console.log("🚀 [DeploymentsList] Loading deployments...");
       setLoading(true);
 
-      const response = await fetch("/v1/deployments");
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await API.deployments.getAll();
       console.log("🚀 [DeploymentsList] Deployments loaded:", data);
 
       setDeployments(data.deployments || []);
@@ -41,8 +35,7 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
   const loadRelatedData = async (deploymentsList) => {
     try {
       // Charger tous les builds
-      const buildsResponse = await fetch("/v1/api/builds");
-      const buildsData = await buildsResponse.json();
+      const buildsData = await API.builds.getAll();
       const buildsMap = {};
       (buildsData.builds || []).forEach((build) => {
         buildsMap[build.id] = build;
@@ -50,8 +43,7 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
       setBuilds(buildsMap);
 
       // Charger tous les projects
-      const projectsResponse = await fetch("/v1/projects");
-      const projectsData = await projectsResponse.json();
+      const projectsData = await API.projects.getAll();
       const projectsMap = {};
       (projectsData.projects || []).forEach((project) => {
         projectsMap[project.id] = project;
@@ -59,8 +51,7 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
       setProjects(projectsMap);
 
       // Charger tous les runners
-      const runnersResponse = await fetch("/v1/api/runners");
-      const runnersData = await runnersResponse.json();
+      const runnersData = await API.runners.getAll();
       const runnersMap = {};
       (runnersData.runners || []).forEach((runner) => {
         runnersMap[runner.id] = runner;

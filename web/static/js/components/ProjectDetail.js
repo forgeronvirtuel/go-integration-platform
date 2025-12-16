@@ -11,26 +11,19 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
         "🔍 [ProjectDetail] Chargement des builds pour projet",
         project.id
       );
-      const response = await fetch(`/v1/api/builds/project/${project.id}`);
-      const data = await response.json();
+      const data = await API.builds.getByProjectId(project.id);
       console.log("📦 [ProjectDetail] Builds reçus:", data);
 
-      if (response.ok) {
-        const buildsArray = Array.isArray(data) ? data : [];
-        console.log(
-          "✅ [ProjectDetail] Builds chargés:",
-          buildsArray.length,
-          "build(s)"
-        );
-        setBuilds(buildsArray);
-      } else {
-        console.error("❌ [ProjectDetail] Erreur HTTP:", response.status, data);
-        onMessage("❌ Erreur lors du chargement des builds");
-        setBuilds([]);
-      }
+      const buildsArray = Array.isArray(data) ? data : [];
+      console.log(
+        "✅ [ProjectDetail] Builds chargés:",
+        buildsArray.length,
+        "build(s)"
+      );
+      setBuilds(buildsArray);
     } catch (error) {
-      console.error("❌ [ProjectDetail] Erreur réseau:", error);
-      onMessage("❌ Erreur réseau: " + error.message);
+      console.error("❌ [ProjectDetail] Erreur:", error);
+      onMessage("❌ Erreur: " + error.message);
       setBuilds([]);
     } finally {
       setLoading(false);
@@ -50,29 +43,20 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
         "branche:",
         buildBranch
       );
-      const response = await fetch("/v1/api/builds/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project_id: project.id,
-          branch: buildBranch,
-        }),
-      });
-      const data = await response.json();
-      console.log("📦 [ProjectDetail] Réponse build:", data);
 
-      if (response.ok) {
-        console.log("✅ [ProjectDetail] Build créé avec ID:", data.id);
-        onMessage("✅ Build lancé avec succès! ID: " + data.id);
-        setShowBuildForm(false);
-        loadBuilds();
-      } else {
-        console.error("❌ [ProjectDetail] Erreur:", data);
-        onMessage("❌ Erreur: " + (data.error || "Erreur inconnue"));
-      }
+      const data = await API.builds.create({
+        project_id: project.id,
+        branch: buildBranch,
+      });
+      console.log("📦 [ProjectDetail] Réponse build:", data);
+      console.log("✅ [ProjectDetail] Build créé avec ID:", data.id);
+
+      onMessage("✅ Build lancé avec succès! ID: " + data.id);
+      setShowBuildForm(false);
+      loadBuilds();
     } catch (error) {
-      console.error("❌ [ProjectDetail] Erreur réseau:", error);
-      onMessage("❌ Erreur réseau: " + error.message);
+      console.error("❌ [ProjectDetail] Erreur:", error);
+      onMessage("❌ Erreur: " + error.message);
     }
   };
 

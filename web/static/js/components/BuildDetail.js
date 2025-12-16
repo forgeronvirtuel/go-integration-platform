@@ -7,20 +7,13 @@ function BuildDetail({ build, project, onMessage, onBack }) {
     setLoading(true);
     try {
       console.log("🔄 [BuildDetail] Rafraîchissement du build", build.id);
-      const response = await fetch(`/v1/api/builds/${build.id}`);
-      const data = await response.json();
+      const data = await API.builds.getById(build.id);
       console.log("📦 [BuildDetail] Données du build:", data);
-
-      if (response.ok) {
-        console.log("✅ [BuildDetail] Build mis à jour, statut:", data.status);
-        setBuildData(data);
-      } else {
-        console.error("❌ [BuildDetail] Erreur HTTP:", response.status, data);
-        onMessage("❌ Erreur lors du rafraîchissement");
-      }
+      console.log("✅ [BuildDetail] Build mis à jour, statut:", data.status);
+      setBuildData(data);
     } catch (error) {
-      console.error("❌ [BuildDetail] Erreur réseau:", error);
-      onMessage("❌ Erreur réseau: " + error.message);
+      console.error("❌ [BuildDetail] Erreur:", error);
+      onMessage("❌ Erreur: " + error.message);
     } finally {
       setLoading(false);
     }

@@ -17,13 +17,7 @@ function RunnerDetail({ runner, onMessage, onBack }) {
       );
       setLoading(true);
 
-      const response = await fetch(`/v1/api/runners/${runner.id}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await API.runners.getById(runner.id);
       console.log("🔍 [RunnerDetail] Runner details loaded:", data);
 
       setRunnerData(data);
@@ -39,19 +33,7 @@ function RunnerDetail({ runner, onMessage, onBack }) {
     try {
       console.log("🔍 [RunnerDetail] Updating status to:", newStatus);
 
-      const response = await fetch(`/v1/api/runners/${runner.id}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await API.runners.updateStatus(runner.id, newStatus);
       console.log("🔍 [RunnerDetail] Status updated:", data);
 
       setRunnerData(data);
@@ -66,19 +48,7 @@ function RunnerDetail({ runner, onMessage, onBack }) {
     try {
       console.log("🔍 [RunnerDetail] Updating labels:", newLabels);
 
-      const response = await fetch(`/v1/api/runners/${runner.id}/labels`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ labels: newLabels }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await API.runners.updateLabels(runner.id, newLabels);
       console.log("🔍 [RunnerDetail] Labels updated:", data);
 
       setRunnerData(data);
@@ -102,15 +72,9 @@ function RunnerDetail({ runner, onMessage, onBack }) {
     try {
       console.log("🔍 [RunnerDetail] Deleting runner:", runner.id);
 
-      const response = await fetch(`/v1/api/runners/${runner.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      await API.runners.delete(runner.id);
       console.log("🔍 [RunnerDetail] Runner deleted successfully");
+
       onMessage("Runner supprimé avec succès");
       onBack();
     } catch (error) {

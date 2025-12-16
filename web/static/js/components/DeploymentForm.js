@@ -17,8 +17,7 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
 
   const loadBuilds = async () => {
     try {
-      const response = await fetch("/v1/api/builds");
-      const data = await response.json();
+      const data = await API.builds.getAll();
       // Filtrer uniquement les builds réussis
       const successBuilds = (data.builds || []).filter(
         (b) => b.status === "success"
@@ -31,8 +30,7 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
 
   const loadRunners = async () => {
     try {
-      const response = await fetch("/v1/api/runners?status=ONLINE");
-      const data = await response.json();
+      const data = await API.runners.getAll("ONLINE");
       setRunners(data.runners || []);
     } catch (error) {
       console.error("📋 [DeploymentForm] Error loading runners:", error);
@@ -63,20 +61,7 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
         payload.runner_id = parseInt(runnerID);
       }
 
-      const response = await fetch("/v1/deployments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create deployment");
-      }
-
-      const data = await response.json();
+      const data = await API.deployments.create(payload);
       console.log("📋 [DeploymentForm] Deployment created:", data);
 
       onMessage(`Déploiement #${data.id} créé avec succès`);

@@ -30,32 +30,20 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
       setLoading(true);
 
       // Charger le déploiement
-      const deploymentResponse = await fetch(
-        `/v1/deployments/${deployment.id}`
-      );
-      const deploymentData = await deploymentResponse.json();
+      const deploymentData = await API.deployments.getById(deployment.id);
       setDeploymentData(deploymentData);
 
       // Charger le build
-      const buildResponse = await fetch(
-        `/v1/api/builds/${deploymentData.build_id}`
-      );
-      const buildData = await buildResponse.json();
+      const buildData = await API.builds.getById(deploymentData.build_id);
       setBuild(buildData);
 
       // Charger le projet
-      const projectResponse = await fetch(
-        `/v1/api/projects/${buildData.project_id}`
-      );
-      const projectData = await projectResponse.json();
+      const projectData = await API.projects.getById(buildData.project_id);
       setProject(projectData);
 
       // Charger l'runner si assigné
       if (deploymentData.runner_id) {
-        const runnerResponse = await fetch(
-          `/v1/api/runners/${deploymentData.runner_id}`
-        );
-        const runnerData = await runnerResponse.json();
+        const runnerData = await API.runners.getById(deploymentData.runner_id);
         setRunner(runnerData);
       } else {
         setRunner(null);
@@ -71,8 +59,7 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
 
   const loadAvailableRunners = async () => {
     try {
-      const response = await fetch("/v1/api/runners?status=ONLINE");
-      const data = await response.json();
+      const data = await API.runners.getAll("ONLINE");
       setAvailableRunners(data.runners || []);
     } catch (error) {
       console.error("🔍 [DeploymentDetail] Error loading runners:", error);
@@ -83,19 +70,7 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
     try {
       console.log("🔍 [DeploymentDetail] Updating status to:", newStatus);
 
-      const response = await fetch(`/v1/deployments/${deployment.id}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await API.deployments.updateStatus(deployment.id, newStatus);
       setDeploymentData(data);
       onMessage(`Statut mis à jour: ${newStatus}`);
     } catch (error) {
@@ -111,24 +86,9 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
         selectedRunnerID
       );
 
-      const payload = {
-        runner_id: selectedRunnerID ? parseInt(selectedRunnerID) : null,
-      };
+      const runnerId = selectedRunnerID ? parseInt(selectedRunnerID) : null;
+      const data = await API.deployments.updateRunner(deployment.id, runnerId);
 
-      const response = await fetch(`/v1/deployments/${deployment.id}/runner`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update runner");
-      }
-
-      const data = await response.json();
       setDeploymentData(data);
       setEditingRunner(false);
       onMessage("Runner mis à jour avec succès");
@@ -151,14 +111,7 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
     try {
       console.log("🔍 [DeploymentDetail] Deleting deployment:", deployment.id);
 
-      const response = await fetch(`/v1/deployments/${deployment.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      await API.deployments.delete(deployment.id);
       onMessage("Déploiement supprimé avec succès");
       onBack();
     } catch (error) {
@@ -171,18 +124,7 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
     try {
       console.log("🔍 [DeploymentDetail] Executing deployment:", deployment.id);
 
-      const response = await fetch(`/v1/deployments/${deployment.id}/execute`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to execute deployment");
-      }
-
+      await API.deployments.execute(deployment.id);
       onMessage("Déploiement lancé avec succès");
       loadDeploymentDetails(); // Rafraîchir les données
     } catch (error) {

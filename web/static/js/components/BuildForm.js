@@ -6,29 +6,21 @@ function BuildForm({ onMessage }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("/v1/api/builds/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project_id: parseInt(buildProjectId),
-          branch: buildBranch,
-        }),
+      const data = await API.builds.create({
+        project_id: parseInt(buildProjectId),
+        branch: buildBranch,
       });
-      const data = await response.json();
-      if (response.ok) {
-        onMessage(
-          "✅ Build lancé avec succès! ID: " +
-            data.id +
-            " - Status: " +
-            data.status
-        );
-        setBuildProjectId("");
-        setBuildBranch("main");
-      } else {
-        onMessage("❌ Erreur: " + (data.error || "Erreur inconnue"));
-      }
+
+      onMessage(
+        "✅ Build lancé avec succès! ID: " +
+          data.id +
+          " - Status: " +
+          data.status
+      );
+      setBuildProjectId("");
+      setBuildBranch("main");
     } catch (error) {
-      onMessage("❌ Erreur réseau: " + error.message);
+      onMessage("❌ Erreur: " + error.message);
     }
   };
 

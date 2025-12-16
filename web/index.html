@@ -44,8 +44,17 @@
 
     <div id="root"></div>
 
-    <!-- API calls -->
-    <script type="text/babel" src="/static/js/api.js" defer></script>
+    <!-- API modules - loaded first -->
+    <script type="text/babel" src="/static/js/api/constants.js" defer></script>
+    <script
+      type="text/babel"
+      src="/static/js/api/deployments.js"
+      defer
+    ></script>
+    <script type="text/babel" src="/static/js/api/builds.js" defer></script>
+    <script type="text/babel" src="/static/js/api/projects.js" defer></script>
+    <script type="text/babel" src="/static/js/api/runners.js" defer></script>
+    <script type="text/babel" src="/static/js/api/index.js" defer></script>
 
     <script
       type="text/babel"
@@ -55,6 +64,11 @@
     <script
       type="text/babel"
       src="/static/js/components/MessageBanner.js"
+      defer
+    ></script>
+    <script
+      type="text/babel"
+      src="/static/js/components/ProjectsList.js"
       defer
     ></script>
     <script

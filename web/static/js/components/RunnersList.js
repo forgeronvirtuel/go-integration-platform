@@ -13,18 +13,9 @@ function RunnersList({ onMessage, onRunnerSelect }) {
       console.log("🤖 [RunnersList] Loading runners...");
       setLoading(true);
 
-      const url =
-        statusFilter !== "all"
-          ? `/v1/api/runners?status=${statusFilter}`
-          : "/v1/api/runners";
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await API.runners.getAll(
+        statusFilter !== "all" ? statusFilter : null
+      );
       console.log("🤖 [RunnersList] Runners loaded:", data);
 
       setRunners(data.runners || []);
