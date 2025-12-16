@@ -38,14 +38,14 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
 
       // Charger le build
       const buildResponse = await fetch(
-        `/v1/builds/${deploymentData.build_id}`
+        `/v1/api/builds/${deploymentData.build_id}`
       );
       const buildData = await buildResponse.json();
       setBuild(buildData);
 
       // Charger le projet
       const projectResponse = await fetch(
-        `/v1/projects/${buildData.project_id}`
+        `/v1/api/projects/${buildData.project_id}`
       );
       const projectData = await projectResponse.json();
       setProject(projectData);

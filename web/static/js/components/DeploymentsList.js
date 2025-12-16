@@ -41,7 +41,7 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
   const loadRelatedData = async (deploymentsList) => {
     try {
       // Charger tous les builds
-      const buildsResponse = await fetch("/v1/builds");
+      const buildsResponse = await fetch("/v1/api/builds");
       const buildsData = await buildsResponse.json();
       const buildsMap = {};
       (buildsData.builds || []).forEach((build) => {

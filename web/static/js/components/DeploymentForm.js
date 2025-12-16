@@ -17,7 +17,7 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
 
   const loadBuilds = async () => {
     try {
-      const response = await fetch("/v1/builds");
+      const response = await fetch("/v1/api/builds");
       const data = await response.json();
       // Filtrer uniquement les builds réussis
       const successBuilds = (data.builds || []).filter(
