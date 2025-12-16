@@ -60,6 +60,27 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
     }
   };
 
+  const handleDeleteProject = async () => {
+    if (
+      !confirm(
+        `Êtes-vous sûr de vouloir supprimer le projet "${project.name}" ?\n\nCette action est irréversible et supprimera également tous les builds associés.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      console.log("🗑️ [ProjectDetail] Suppression du projet", project.id);
+      await API.projects.delete(project.id);
+      console.log("✅ [ProjectDetail] Projet supprimé avec succès");
+      onMessage("✅ Projet supprimé avec succès");
+      onBack();
+    } catch (error) {
+      console.error("❌ [ProjectDetail] Erreur lors de la suppression:", error);
+      onMessage("❌ Erreur lors de la suppression: " + error.message);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "success":
@@ -115,12 +136,21 @@ function ProjectDetail({ project, onMessage, onBack, onBuildSelect }) {
 
         {/* Formulaire de build */}
         <div className="p-6 border-b">
-          <button
-            onClick={() => setShowBuildForm(!showBuildForm)}
-            className="btn-primary bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700"
-          >
-            {showBuildForm ? "❌ Annuler" : "🔨 Lancer un nouveau build"}
-          </button>
+          <div className="flex justify-between items-center gap-4">
+            <button
+              onClick={() => setShowBuildForm(!showBuildForm)}
+              className="btn-primary bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700"
+            >
+              {showBuildForm ? "❌ Annuler" : "🔨 Lancer un nouveau build"}
+            </button>
+
+            <button
+              onClick={handleDeleteProject}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+            >
+              🗑️ Supprimer le projet
+            </button>
+          </div>
 
           {showBuildForm && (
             <form onSubmit={handleCreateBuild} className="mt-4 space-y-4">
