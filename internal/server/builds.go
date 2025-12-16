@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-git/go-git/v6"
 )
@@ -138,7 +140,7 @@ func (h *BuildHandler) CreateBuild(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"build_id":     build.ID,
+		"id":           build.ID,
 		"status":       "success",
 		"binary_path":  binaryPath,
 		"download_url": fmt.Sprintf("/api/builds/%d/download", build.ID),
@@ -204,8 +206,11 @@ func (h *BuildHandler) DownloadBinary(c *gin.Context) {
 }
 
 func (h *BuildHandler) GetAllBuilds(c *gin.Context) {
+	log.Info().Msg("Fetching all builds")
+
 	builds, err := database.GetAllBuilds(h.DB)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to fetch builds")
 		c.JSON(500, gin.H{"error": "Failed to fetch builds"})
 		return
 	}
@@ -224,6 +229,7 @@ func (h *BuildHandler) GetAllBuilds(c *gin.Context) {
 		})
 	}
 
+	log.Info().Int("count", len(response)).Msg("Builds fetched successfully")
 	c.JSON(200, response)
 }
 

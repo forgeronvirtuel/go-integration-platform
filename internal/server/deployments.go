@@ -76,7 +76,7 @@ func (h *DeploymentHandler) CreateDeployment(c *gin.Context) {
 	log.Info().
 		Int("deployment_id", deployment.ID).
 		Int("build_id", req.BuildID).
-		Msg("DDeployment created successfully")
+		Msg("Deployment created successfully")
 
 	c.JSON(http.StatusCreated, deployment)
 }
@@ -105,7 +105,9 @@ type GetAllDeploymentsResponse struct {
 }
 
 func (h *DeploymentHandler) GetAllDeployments(c *gin.Context) {
+	log.Info().Msg("Fetching all deployments")
 	deployments, err := database.GetAllDeployments(h.DB)
+	log.Info().Msgf("Fetched %d deployments", len(deployments))
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching deployments")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch deployments"})
