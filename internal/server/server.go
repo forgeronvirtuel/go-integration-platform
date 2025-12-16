@@ -44,17 +44,16 @@ func SetupControlPlaneRouter(db *sql.DB, workspace string) *gin.Engine {
 	router.Static("/static", "./web/static")
 	router.StaticFile("/", "./web/index.html")
 
-	v1 := router.Group("/v1")
+	api := router.Group("/api/v1/")
 
 	// Endpoint: Health with DB check
 	healthHandler := &HealthHandler{DB: db}
-	v1.GET("/health", healthHandler.Health)
+	api.GET("/health", healthHandler.Health)
 
-	setupProjectRoutes(v1, db)
-	setupBuildRoutes(v1, db, workspace)
-	setupAgentRoutes(v1, db)
-	setupDeploymentRoutes(v1, db)
-
+	setupProjectRoutes(api, db)
+	setupBuildRoutes(api, db, workspace)
+	setupRunnerRoutes(api, db)
+	setupDeploymentRoutes(api, db)
 	return router
 }
 

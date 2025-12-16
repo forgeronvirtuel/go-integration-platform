@@ -381,11 +381,11 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Deployment execution started"})
 }
 
-// setupDeploymentRoutes  configure the routes for deployments
-func setupDeploymentRoutes(v1 gin.IRouter, db *sql.DB) {
+// setupDeploymentRoutes  configure endpoints for deployments
+func setupDeploymentRoutes(api *gin.RouterGroup, db *sql.DB) {
 	handler := &DeploymentHandler{DB: db}
 
-	deployments := v1.Group("/deployments")
+	deployments := api.Group("/deployments")
 	{
 		deployments.POST("", handler.CreateDeployment)
 		deployments.GET("", handler.GetAllDeployments)

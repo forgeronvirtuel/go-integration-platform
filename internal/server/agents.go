@@ -302,19 +302,19 @@ func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Agent deleted successfully"})
 }
 
-// setupAgentRoutes configure les routes pour les agents
-func setupAgentRoutes(router gin.IRouter, db *sql.DB) {
+// setupRunnerRoutes configure endpoints for managing runners (old name: agents)
+func setupRunnerRoutes(api *gin.RouterGroup, db *sql.DB) {
 	handler := &AgentHandler{DB: db}
-	agents := router.Group("/api/runners")
+	runners := api.Group("/runners")
 	{
-		agents.POST("/register", handler.CreateAgent)        // Créer un agent
-		agents.GET("", handler.GetAllAgents)                 // Lister tous les agents (avec filtre status optionnel)
-		agents.GET("/:id", handler.GetAgent)                 // Récupérer un agent par ID
-		agents.GET("/by-name/:name", handler.GetAgentByName) // Récupérer un agent par nom
-		agents.PUT("/:id/status", handler.UpdateAgentStatus) // Mettre à jour le statut
-		agents.PUT("/:id/labels", handler.UpdateAgentLabels) // Mettre à jour les labels
-		agents.PUT("/:id/url", handler.UpdateAgentURL)       // Mettre à jour l'URL
-		agents.POST("/:id/heartbeat", handler.Heartbeat)     // Heartbeat
-		agents.DELETE("/:id", handler.DeleteAgent)           // Supprimer un agent
+		runners.POST("/register", handler.CreateAgent)        // Créer un agent
+		runners.GET("", handler.GetAllAgents)                 // Lister tous les agents (avec filtre status optionnel)
+		runners.GET("/:id", handler.GetAgent)                 // Récupérer un agent par ID
+		runners.GET("/by-name/:name", handler.GetAgentByName) // Récupérer un agent par nom
+		runners.PUT("/:id/status", handler.UpdateAgentStatus) // Mettre à jour le statut
+		runners.PUT("/:id/labels", handler.UpdateAgentLabels) // Mettre à jour les labels
+		runners.PUT("/:id/url", handler.UpdateAgentURL)       // Mettre à jour l'URL
+		runners.POST("/:id/heartbeat", handler.Heartbeat)     // Heartbeat
+		runners.DELETE("/:id", handler.DeleteAgent)           // Supprimer un agent
 	}
 }
