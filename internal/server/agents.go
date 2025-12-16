@@ -305,7 +305,7 @@ func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 // setupAgentRoutes configure les routes pour les agents
 func setupAgentRoutes(router gin.IRouter, db *sql.DB) {
 	handler := &AgentHandler{DB: db}
-	agents := router.Group("/api/agents")
+	agents := router.Group("/api/runners")
 	{
 		agents.POST("/register", handler.CreateAgent)        // Créer un agent
 		agents.GET("", handler.GetAllAgents)                 // Lister tous les agents (avec filtre status optionnel)
