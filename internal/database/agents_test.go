@@ -65,7 +65,7 @@ func TestGetAgentByName(t *testing.T) {
 	labels := map[string]string{"region": "eu-west"}
 	CreateAgent(db, "test-agent-3", labels)
 
-	agent, err := GetAgentByName(db, "test-agent-3")
+	agent, err := GetRunnerByName(db, "test-agent-3")
 	assert.NoError(t, err)
 	assert.Equal(t, "test-agent-3", agent.Name)
 	assert.Equal(t, "eu-west", agent.Labels["region"])
@@ -79,7 +79,7 @@ func TestGetAllAgents(t *testing.T) {
 	CreateAgent(db, "agent-2", map[string]string{})
 	CreateAgent(db, "agent-3", map[string]string{})
 
-	agents, err := GetAllAgents(db)
+	agents, err := GetAllRunners(db)
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(agents), 3)
 }
