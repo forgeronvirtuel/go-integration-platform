@@ -6,6 +6,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Response with deployments array
    */
   async getAll() {
+    console.log("[DeploymentsAPI] Fetching all deployments");
     const response = await fetch(`${mainAPIURL}/deployments`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -19,6 +20,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Deployment object
    */
   async getById(id) {
+    console.log("[DeploymentsAPI] Fetching deployment by ID:", id);
     const response = await fetch(`${mainAPIURL}/deployments/${id}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -34,6 +36,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Created deployment
    */
   async create(payload) {
+    console.log("[DeploymentsAPI] Creating deployment with payload:", payload);
     const response = await fetch(`${mainAPIURL}/deployments`, {
       method: "POST",
       headers: {
@@ -57,6 +60,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Updated deployment
    */
   async updateStatus(id, status) {
+    console.log("[DeploymentsAPI] Updating deployment status:", { id, status });
     const response = await fetch(`${mainAPIURL}/deployments/${id}/status`, {
       method: "PUT",
       headers: {
@@ -79,6 +83,10 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Updated deployment
    */
   async updateRunner(id, runnerId) {
+    console.log("[DeploymentsAPI] Updating deployment runner:", {
+      id,
+      runnerId,
+    });
     const response = await fetch(`${mainAPIURL}/deployments/${id}/runner`, {
       method: "PUT",
       headers: {
@@ -101,6 +109,7 @@ const DeploymentsAPI = {
    * @returns {Promise<Object>} Execution result
    */
   async execute(id) {
+    console.log("[DeploymentsAPI] Executing deployment ID:", id);
     const response = await fetch(`${mainAPIURL}/deployments/${id}/execute`, {
       method: "POST",
       headers: {

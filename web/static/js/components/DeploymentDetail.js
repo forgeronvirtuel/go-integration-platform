@@ -16,14 +16,6 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
     deployment
   );
 
-  useEffect(() => {
-    loadDeploymentDetails();
-    loadAvailableRunners();
-    // Rafraîchir toutes les 5 secondes
-    const interval = setInterval(loadDeploymentDetails, 5000);
-    return () => clearInterval(interval);
-  }, [deployment.id]);
-
   const loadDeploymentDetails = async () => {
     try {
       console.log("🔍 [DeploymentDetail] Loading deployment details...");

@@ -16,12 +16,11 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
       console.log("🚀 [DeploymentsList] Loading deployments...");
       setLoading(true);
 
-      const data = await API.deployments.getAll();
+      const data = await DeploymentsAPI.getAll();
       console.log("🚀 [DeploymentsList] Deployments loaded:", data);
 
       setDeployments(data.deployments || []);
 
-      // Charger les builds, projects et runners associés
       await loadRelatedData(data.deployments || []);
 
       setLoading(false);
@@ -32,10 +31,20 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
     }
   };
 
+  React.useEffect(() => {
+    loadDeployments();
+  }, []);
+
   const loadRelatedData = async (deploymentsList) => {
     try {
-      // Charger tous les builds
+      console.log(
+        "🚀 [DeploymentsList] Loading related data for deployments..."
+      );
       const buildsData = await API.builds.getAll();
+      console.log(
+        "🚀 [DeploymentsList] Builds loaded for related data:",
+        buildsData
+      );
       const buildsMap = {};
       (buildsData.builds || []).forEach((build) => {
         buildsMap[build.id] = build;
@@ -61,13 +70,6 @@ function DeploymentsList({ onMessage, onDeploymentSelect }) {
       console.error("🚀 [DeploymentsList] Error loading related data:", error);
     }
   };
-
-  useEffect(() => {
-    loadDeployments();
-    // Rafraîchir toutes les 10 secondes
-    const interval = setInterval(loadDeployments, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   const getStatusBadge = (status) => {
     const statusColors = {

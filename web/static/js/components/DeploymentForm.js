@@ -1,6 +1,3 @@
-// Composant DeploymentForm
-const { useState, useEffect } = React;
-
 function DeploymentForm({ onMessage, onDeploymentCreated }) {
   const [builds, setBuilds] = useState([]);
   const [runners, setRunners] = useState([]);
@@ -10,18 +7,16 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
 
   console.log("📋 [DeploymentForm] Component mounted");
 
-  useEffect(() => {
-    loadBuilds();
-    loadRunners();
-  }, []);
-
   const loadBuilds = async () => {
     try {
+      console.log("📋 [DeploymentForm] Loading builds...");
       const data = await API.builds.getAll();
-      // Filtrer uniquement les builds réussis
-      const successBuilds = (data.builds || []).filter(
-        (b) => b.status === "success"
+      console.log("📋 [DeploymentForm] Builds loaded:", data);
+
+      const successBuilds = (data || []).filter(
+        (b) => b.status && b.status.toLowerCase() === "success"
       );
+      console.log("📋 [DeploymentForm] Successful builds:", successBuilds);
       setBuilds(successBuilds);
     } catch (error) {
       console.error("📋 [DeploymentForm] Error loading builds:", error);
@@ -36,6 +31,11 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
       console.error("📋 [DeploymentForm] Error loading runners:", error);
     }
   };
+
+  React.useEffect(() => {
+    loadBuilds();
+    loadRunners();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
