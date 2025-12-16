@@ -37,7 +37,7 @@ type HeartbeatResponse struct {
 
 // SendHeartbeat envoie un heartbeat au control plane
 func SendHeartbeat(controlPlaneURL string, runnerID int) {
-	url := fmt.Sprintf("%s/v1/api/runners/%d/heartbeat", controlPlaneURL, runnerID)
+	url := fmt.Sprintf("%s/api/v1/runners/%d/heartbeat", controlPlaneURL, runnerID)
 
 	log.Debug().Str("url", url).Msg("Envoi du heartbeat")
 

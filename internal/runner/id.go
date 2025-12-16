@@ -18,7 +18,7 @@ type RunnerResponse struct {
 }
 
 func GetRunnerId(controlPlaneURL, name string) (int, error) {
-	url := fmt.Sprintf("%s/v1/api/runners/by-name/%s", controlPlaneURL, name)
+	url := fmt.Sprintf("%s/api/v1/runners/by-name/%s", controlPlaneURL, name)
 
 	log.Debug().Str("url", url).Msg("Checking if runner name exists")
 	resp, err := http.Get(url)

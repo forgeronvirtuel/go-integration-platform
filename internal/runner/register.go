@@ -17,7 +17,7 @@ type runnerRegistrationRequest struct {
 
 // RegisterRunner registers the runner with the control plane
 func RegisterRunner(controlPlaneURL, name string, labels map[string]string, url string) (int, error) {
-	urlEndpoint := fmt.Sprintf("%s/v1/api/runners/register", controlPlaneURL)
+	urlEndpoint := fmt.Sprintf("%s/api/v1/runners/register", controlPlaneURL)
 
 	request := runnerRegistrationRequest{
 		Name:   name,

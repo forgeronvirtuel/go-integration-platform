@@ -9,7 +9,7 @@ import (
 
 // UpdateRunnerStatus updates the status of the runner
 func UpdateRunnerStatus(controlPlaneURL string, runnerID int, status string) error {
-	url := fmt.Sprintf("%s/v1/api/runners/%d/status", controlPlaneURL, runnerID)
+	url := fmt.Sprintf("%s/api/v1/runners/%d/status", controlPlaneURL, runnerID)
 
 	statusData := map[string]string{"status": status}
 	jsonData, err := json.Marshal(statusData)

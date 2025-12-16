@@ -48,7 +48,7 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 	}
 
 	// Vérifier si uwn agent avec ce nom existe déjà
-	existingAgent, err := database.GetAgentByName(h.DB, req.Name)
+	existingAgent, err := database.GetRunnerByName(h.DB, req.Name)
 	if err == nil && existingAgent != nil {
 		c.JSON(http.StatusConflict, APIError{Code: ERR_CDE_AGENT_NAME_EXISTS, Message: "Agent with this name already exists"})
 		return
@@ -96,7 +96,7 @@ func (h *AgentHandler) GetAgent(c *gin.Context) {
 func (h *AgentHandler) GetAgentByName(c *gin.Context) {
 	name := c.Param("name")
 
-	agent, err := database.GetAgentByName(h.DB, name)
+	agent, err := database.GetRunnerByName(h.DB, name)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
 		return
@@ -110,24 +110,24 @@ func (h *AgentHandler) GetAllAgents(c *gin.Context) {
 	// Optionnel: filtrer par statut
 	status := c.Query("status")
 
-	var agents []database.Agent
+	var runners []database.Runner
 	var err error
 
 	if status != "" {
-		agents, err = database.GetAgentsByStatus(h.DB, status)
+		runners, err = database.GetAgentsByStatus(h.DB, status)
 	} else {
-		agents, err = database.GetAllAgents(h.DB)
+		runners, err = database.GetAllRunners(h.DB)
 	}
 
 	if err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la récupération des agents")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch agents"})
+		log.Error().Err(err).Msg("failed to fetch runners")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch runners"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"agents": agents,
-		"count":  len(agents),
+		"runners": runners,
+		"count":   len(runners),
 	})
 }
 
