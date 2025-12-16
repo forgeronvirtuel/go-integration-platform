@@ -1,6 +1,3 @@
-// Composant RunnersList
-const { useState, useEffect } = React;
-
 function RunnersList({ onMessage, onRunnerSelect }) {
   const [runners, setRunners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +10,7 @@ function RunnersList({ onMessage, onRunnerSelect }) {
       console.log("🤖 [RunnersList] Loading runners...");
       setLoading(true);
 
-      const data = await API.runners.getAll(
+      const data = await RunnersAPI.getAll(
         statusFilter !== "all" ? statusFilter : null
       );
       console.log("🤖 [RunnersList] Runners loaded:", data);
@@ -26,13 +23,6 @@ function RunnersList({ onMessage, onRunnerSelect }) {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadRunners();
-    // Rafraîchir toutes les 10 secondes
-    const interval = setInterval(loadRunners, 10000);
-    return () => clearInterval(interval);
-  }, [statusFilter]);
 
   const getStatusBadge = (status) => {
     const statusColors = {
@@ -73,6 +63,10 @@ function RunnersList({ onMessage, onRunnerSelect }) {
     return `il y a ${Math.floor(seconds / 86400)}j`;
   };
 
+  React.useEffect(() => {
+    loadRunners();
+  }, [statusFilter]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -85,9 +79,7 @@ function RunnersList({ onMessage, onRunnerSelect }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            🤖 Runners / Runners
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800">🤖 Runners</h2>
           <p className="text-gray-600 mt-1">
             {runners.length} runner{runners.length !== 1 ? "s" : ""} enregistré
             {runners.length !== 1 ? "s" : ""}

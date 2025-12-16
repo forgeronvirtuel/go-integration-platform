@@ -84,13 +84,6 @@ function RunnerDetail({ runner, onMessage, onBack }) {
   };
 
   useEffect(() => {
-    loadRunnerDetails();
-    // Rafraîchir toutes les 5 secondes
-    const interval = setInterval(loadRunnerDetails, 5000);
-    return () => clearInterval(interval);
-  }, [runner.id]);
-
-  useEffect(() => {
     setNewLabels(runnerData.labels || {});
   }, [runnerData.labels]);
 
