@@ -21,19 +21,15 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
       console.log("🔍 [DeploymentDetail] Loading deployment details...");
       setLoading(true);
 
-      // Charger le déploiement
       const deploymentData = await API.deployments.getById(deployment.id);
       setDeploymentData(deploymentData);
 
-      // Charger le build
       const buildData = await API.builds.getById(deploymentData.build_id);
       setBuild(buildData);
 
-      // Charger le projet
       const projectData = await API.projects.getById(buildData.project_id);
       setProject(projectData);
 
-      // Charger l'runner si assigné
       if (deploymentData.runner_id) {
         const runnerData = await API.runners.getById(deploymentData.runner_id);
         setRunner(runnerData);

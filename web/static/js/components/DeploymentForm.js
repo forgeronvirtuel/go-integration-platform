@@ -25,7 +25,7 @@ function DeploymentForm({ onMessage, onDeploymentCreated }) {
 
   const loadRunners = async () => {
     try {
-      const data = await API.runners.getAll("ONLINE");
+      const data = await RunnersAPI.getAll();
       setRunners(data.runners || []);
     } catch (error) {
       console.error("📋 [DeploymentForm] Error loading runners:", error);
