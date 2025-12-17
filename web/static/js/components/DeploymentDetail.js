@@ -22,16 +22,23 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
       setLoading(true);
 
       const deploymentData = await API.deployments.getById(deployment.id);
+      console.log(
+        "🔍 [DeploymentDetail] Loaded deployment data:",
+        deploymentData
+      );
       setDeploymentData(deploymentData);
 
       const buildData = await API.builds.getById(deploymentData.build_id);
+      console.log("🔍 [DeploymentDetail] Loaded build data:", buildData);
       setBuild(buildData);
 
       const projectData = await API.projects.getById(buildData.project_id);
+      console.log("🔍 [DeploymentDetail] Loaded project data:", projectData);
       setProject(projectData);
 
       if (deploymentData.runner_id) {
         const runnerData = await API.runners.getById(deploymentData.runner_id);
+        console.log("🔍 [DeploymentDetail] Loaded runner data:", runnerData);
         setRunner(runnerData);
       } else {
         setRunner(null);
@@ -120,6 +127,11 @@ function DeploymentDetail({ deployment, onMessage, onBack }) {
       onMessage(`Erreur: ${error.message}`);
     }
   };
+
+  useEffect(() => {
+    loadDeploymentDetails();
+    loadAvailableRunners();
+  }, []);
 
   const getStatusBadge = (status) => {
     const statusColors = {
