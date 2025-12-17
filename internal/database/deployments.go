@@ -11,7 +11,7 @@ type Deployment struct {
 	ID        int        `json:"id"`
 	BuildID   int        `json:"build_id"`
 	Status    string     `json:"status"` // pending, deploying, deployed, failed
-	AgentID   *int       `json:"agent_id,omitempty"`
+	RunnerID  *int       `json:"runner_id,omitempty"`
 	LogOutput string     `json:"log_output"`
 	StartedAt time.Time  `json:"started_at"`
 	EndedAt   *time.Time `json:"ended_at,omitempty"`
@@ -25,16 +25,16 @@ func CreateDeploymentsTable(db *sql.DB) error {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		build_id INTEGER NOT NULL,
 		status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'deploying', 'deployed', 'failed')),
-		agent_id INTEGER,
+		runner_id INTEGER,
 		log_output TEXT,
 		started_at DATETIME,
 		ended_at DATETIME,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (build_id) REFERENCES builds(id) ON DELETE CASCADE,
-		FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE SET NULL
+		FOREIGN KEY (runner_id) REFERENCES runners(id) ON DELETE SET NULL
 	);
 	CREATE INDEX IF NOT EXISTS idx_deployments_build_id ON deployments(build_id);
-	CREATE INDEX IF NOT EXISTS idx_deployments_agent_id ON deployments(agent_id);
+	CREATE INDEX IF NOT EXISTS idx_deployments_runner_id ON deployments(runner_id);
 	CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
 	`
 	_, err := db.Exec(query)
@@ -47,11 +47,11 @@ func CreateDeploymentsTable(db *sql.DB) error {
 }
 
 // CreateDeployment creates a new deployment
-func CreateDeployment(db *sql.DB, buildID int, agentID *int) (*Deployment, error) {
+func CreateDeployment(db *sql.DB, buildID int, RunnerID *int) (*Deployment, error) {
 	startedAt := time.Now()
 	result, err := db.Exec(
-		"INSERT INTO deployments (build_id, agent_id, status, started_at) VALUES (?, ?, ?, ?)",
-		buildID, agentID, "pending", startedAt,
+		"INSERT INTO deployments (build_id, runner_id, status, started_at) VALUES (?, ?, ?, ?)",
+		buildID, RunnerID, "pending", startedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func CreateDeployment(db *sql.DB, buildID int, agentID *int) (*Deployment, error
 	deployment := &Deployment{
 		ID:        int(id),
 		BuildID:   buildID,
-		AgentID:   agentID,
+		RunnerID:  RunnerID,
 		Status:    "pending",
 		StartedAt: startedAt,
 		CreatedAt: startedAt,
@@ -74,7 +74,8 @@ func CreateDeployment(db *sql.DB, buildID int, agentID *int) (*Deployment, error
 	log.Info().
 		Int("deployment_id", deployment.ID).
 		Int("build_id", buildID).
-		Msg("DDeployment created successfully")
+		Int("runner_id", *RunnerID).
+		Msg("Deployment created successfully")
 
 	return deployment, nil
 }
@@ -83,13 +84,13 @@ func CreateDeployment(db *sql.DB, buildID int, agentID *int) (*Deployment, error
 func GetDeploymentByID(db *sql.DB, id int) (*Deployment, error) {
 	deployment := &Deployment{}
 	var endedAt sql.NullTime
-	var agentID sql.NullInt64
+	var runnerID sql.NullInt64
 	var logOutput sql.NullString
 
 	err := db.QueryRow(
-		"SELECT id, build_id, status, agent_id, log_output, started_at, ended_at, created_at FROM deployments WHERE id = ?",
+		"SELECT id, build_id, status, runner_id, log_output, started_at, ended_at, created_at FROM deployments WHERE id = ?",
 		id,
-	).Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &agentID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
+	).Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &runnerID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
 
 	if err != nil {
 		return nil, err
@@ -99,9 +100,9 @@ func GetDeploymentByID(db *sql.DB, id int) (*Deployment, error) {
 		deployment.EndedAt = &endedAt.Time
 	}
 
-	if agentID.Valid {
-		agentIDInt := int(agentID.Int64)
-		deployment.AgentID = &agentIDInt
+	if runnerID.Valid {
+		runnerIDInt := int(runnerID.Int64)
+		deployment.RunnerID = &runnerIDInt
 	}
 
 	if logOutput.Valid {
@@ -114,7 +115,7 @@ func GetDeploymentByID(db *sql.DB, id int) (*Deployment, error) {
 // GetAllDeployments retrieves all deployments
 func GetAllDeployments(db *sql.DB) ([]Deployment, error) {
 	rows, err := db.Query(
-		"SELECT id, build_id, status, agent_id, log_output, started_at, ended_at, created_at FROM deployments ORDER BY created_at DESC",
+		"SELECT id, build_id, status, runner_id, log_output, started_at, ended_at, created_at FROM deployments ORDER BY created_at DESC",
 	)
 	if err != nil {
 		return nil, err
@@ -125,10 +126,10 @@ func GetAllDeployments(db *sql.DB) ([]Deployment, error) {
 	for rows.Next() {
 		var deployment Deployment
 		var endedAt sql.NullTime
-		var agentID sql.NullInt64
+		var runnerID sql.NullInt64
 		var logOutput sql.NullString
 
-		err := rows.Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &agentID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
+		err := rows.Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &runnerID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -137,9 +138,9 @@ func GetAllDeployments(db *sql.DB) ([]Deployment, error) {
 			deployment.EndedAt = &endedAt.Time
 		}
 
-		if agentID.Valid {
-			agentIDInt := int(agentID.Int64)
-			deployment.AgentID = &agentIDInt
+		if runnerID.Valid {
+			runnerIDInt := int(runnerID.Int64)
+			deployment.RunnerID = &runnerIDInt
 		}
 
 		if logOutput.Valid {
@@ -155,7 +156,7 @@ func GetAllDeployments(db *sql.DB) ([]Deployment, error) {
 // GetDeploymentsByBuildID get all deployments for a build
 func GetDeploymentsByBuildID(db *sql.DB, buildID int) ([]Deployment, error) {
 	rows, err := db.Query(
-		"SELECT id, build_id, status, agent_id, log_output, started_at, ended_at, created_at FROM deployments WHERE build_id = ? ORDER BY created_at DESC",
+		"SELECT id, build_id, status, runner_id, log_output, started_at, ended_at, created_at FROM deployments WHERE build_id = ? ORDER BY created_at DESC",
 		buildID,
 	)
 	if err != nil {
@@ -167,10 +168,10 @@ func GetDeploymentsByBuildID(db *sql.DB, buildID int) ([]Deployment, error) {
 	for rows.Next() {
 		var deployment Deployment
 		var endedAt sql.NullTime
-		var agentID sql.NullInt64
+		var runnerID sql.NullInt64
 		var logOutput sql.NullString
 
-		err := rows.Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &agentID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
+		err := rows.Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &runnerID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -179,9 +180,9 @@ func GetDeploymentsByBuildID(db *sql.DB, buildID int) ([]Deployment, error) {
 			deployment.EndedAt = &endedAt.Time
 		}
 
-		if agentID.Valid {
-			agentIDInt := int(agentID.Int64)
-			deployment.AgentID = &agentIDInt
+		if runnerID.Valid {
+			runnerIDInt := int(runnerID.Int64)
+			deployment.RunnerID = &runnerIDInt
 		}
 
 		if logOutput.Valid {
@@ -194,11 +195,11 @@ func GetDeploymentsByBuildID(db *sql.DB, buildID int) ([]Deployment, error) {
 	return deployments, nil
 }
 
-// GetDeploymentsByAgentID gets all deployments for an agent
-func GetDeploymentsByAgentID(db *sql.DB, agentID int) ([]Deployment, error) {
+// GetDeploymentsByRunnerID gets all deployments for an runner
+func GetDeploymentsByRunnerID(db *sql.DB, runnerID int) ([]Deployment, error) {
 	rows, err := db.Query(
-		"SELECT id, build_id, status, agent_id, log_output, started_at, ended_at, created_at FROM deployments WHERE agent_id = ? ORDER BY created_at DESC",
-		agentID,
+		"SELECT id, build_id, status, runner_id, log_output, started_at, ended_at, created_at FROM deployments WHERE runner_id = ? ORDER BY created_at DESC",
+		runnerID,
 	)
 	if err != nil {
 		return nil, err
@@ -209,10 +210,10 @@ func GetDeploymentsByAgentID(db *sql.DB, agentID int) ([]Deployment, error) {
 	for rows.Next() {
 		var deployment Deployment
 		var endedAt sql.NullTime
-		var agentID sql.NullInt64
+		var runnerID sql.NullInt64
 		var logOutput sql.NullString
 
-		err := rows.Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &agentID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
+		err := rows.Scan(&deployment.ID, &deployment.BuildID, &deployment.Status, &runnerID, &logOutput, &deployment.StartedAt, &endedAt, &deployment.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -221,9 +222,9 @@ func GetDeploymentsByAgentID(db *sql.DB, agentID int) ([]Deployment, error) {
 			deployment.EndedAt = &endedAt.Time
 		}
 
-		if agentID.Valid {
-			agentIDInt := int(agentID.Int64)
-			deployment.AgentID = &agentIDInt
+		if runnerID.Valid {
+			runnerIDInt := int(runnerID.Int64)
+			deployment.RunnerID = &runnerIDInt
 		}
 
 		if logOutput.Valid {
@@ -277,11 +278,11 @@ func UpdateDeploymentLog(db *sql.DB, id int, logOutput string) error {
 	return nil
 }
 
-// UpdateDeploymentAgent updates the agent assigned to a deployment
-func UpdateDeploymentAgent(db *sql.DB, id int, agentID *int) (*Deployment, error) {
+// UpdateDeploymentRunner updates the runner assigned to a deployment
+func UpdateDeploymentRunner(db *sql.DB, id int, runnerID *int) (*Deployment, error) {
 	_, err := db.Exec(
-		"UPDATE deployments SET agent_id = ? WHERE id = ?",
-		agentID, id,
+		"UPDATE deployments SET runner_id = ? WHERE id = ?",
+		runnerID, id,
 	)
 	if err != nil {
 		return nil, err
@@ -289,7 +290,7 @@ func UpdateDeploymentAgent(db *sql.DB, id int, agentID *int) (*Deployment, error
 
 	log.Info().
 		Int("deployment_id", id).
-		Msg("Deployment agent updated")
+		Msg("Deployment runner updated")
 
 	return GetDeploymentByID(db, id)
 }

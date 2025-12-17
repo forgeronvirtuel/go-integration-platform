@@ -8,7 +8,8 @@ import (
 
 func applyMigrations(db *sql.DB) error {
 	migrations := []func(*sql.DB) error{
-		MigrateAddAgentURLv1,
+		MigrateAddRunnerURLv1,
+		MigrateDeploymentRenameRunnerToRunnerV1,
 	}
 
 	for i, migrate := range migrations {

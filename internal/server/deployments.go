@@ -19,16 +19,16 @@ type DeploymentHandler struct {
 }
 
 type CreateDeploymentRequest struct {
-	BuildID int  `json:"build_id" binding:"required"`
-	AgentID *int `json:"agent_id,omitempty"`
+	BuildID  int  `json:"build_id" binding:"required"`
+	RunnerID *int `json:"runner_id,omitempty"`
 }
 
 type UpdateDeploymentStatusRequest struct {
 	Status string `json:"status" binding:"required,oneof=pending deploying deployed failed"`
 }
 
-type UpdateDeploymentAgentRequest struct {
-	AgentID *int `json:"agent_id"`
+type UpdateDeploymentRunnerRequest struct {
+	RunnerID *int `json:"runner_id"`
 }
 
 type UpdateDeploymentLogRequest struct {
@@ -36,7 +36,7 @@ type UpdateDeploymentLogRequest struct {
 }
 
 // CreateDeployment creates a new deployment.
-// If an agent ID is provided, it checks that the agent exists but ignore its status.
+// If an runner ID is provided, it checks that the runner exists but ignore its status.
 func (h *DeploymentHandler) CreateDeployment(c *gin.Context) {
 	var req CreateDeploymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -56,17 +56,17 @@ func (h *DeploymentHandler) CreateDeployment(c *gin.Context) {
 		return
 	}
 
-	// If an agent ID is provided, check that the agent exists
-	if req.AgentID != nil {
-		_, err := database.GetAgentByID(h.DB, *req.AgentID)
+	// If an runner ID is provided, check that the runner exists
+	if req.RunnerID != nil {
+		_, err := database.GetRunnerByID(h.DB, *req.RunnerID)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 			return
 		}
 	}
 
 	// Push the deployment to the database
-	deployment, err := database.CreateDeployment(h.DB, req.BuildID, req.AgentID)
+	deployment, err := database.CreateDeployment(h.DB, req.BuildID, req.RunnerID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating deployment")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create deployment"})
@@ -147,21 +147,21 @@ func (h *DeploymentHandler) GetDeploymentsByBuildID(c *gin.Context) {
 	})
 }
 
-// GetDeploymentsByAgentID gets all deployments for an agent
-func (h *DeploymentHandler) GetDeploymentsByAgentID(c *gin.Context) {
-	agentIDStr := c.Query("agent_id")
-	if agentIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "agent_id query parameter required"})
+// GetDeploymentsByRunnerID gets all deployments for an runner
+func (h *DeploymentHandler) GetDeploymentsByRunnerID(c *gin.Context) {
+	runnerIDStr := c.Query("runner_id")
+	if runnerIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "runner_id query parameter required"})
 		return
 	}
 
-	agentID, err := strconv.Atoi(agentIDStr)
+	runnerID, err := strconv.Atoi(runnerIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner_id"})
 		return
 	}
 
-	deployments, err := database.GetDeploymentsByAgentID(h.DB, agentID)
+	deployments, err := database.GetDeploymentsByRunnerID(h.DB, runnerID)
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching deployments")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch deployments"})
@@ -204,9 +204,9 @@ func (h *DeploymentHandler) UpdateDeploymentStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, deployment)
 }
 
-// UpdateDeploymentAgent updates the agent of a deployment
-// If an agent ID is provided, it checks that the agent exists but ignore its status.
-func (h *DeploymentHandler) UpdateDeploymentAgent(c *gin.Context) {
+// UpdateDeploymentRunner updates the runner of a deployment
+// If an runner ID is provided, it checks that the runner exists but ignore its status.
+func (h *DeploymentHandler) UpdateDeploymentRunner(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -214,31 +214,31 @@ func (h *DeploymentHandler) UpdateDeploymentAgent(c *gin.Context) {
 		return
 	}
 
-	var req UpdateDeploymentAgentRequest
+	var req UpdateDeploymentRunnerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
-	// Check that the agent exists if provided
-	if req.AgentID != nil {
-		_, err := database.GetAgentByID(h.DB, *req.AgentID)
+	// Check that the runner exists if provided
+	if req.RunnerID != nil {
+		_, err := database.GetRunnerByID(h.DB, *req.RunnerID)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 			return
 		}
 	}
 
-	deployment, err := database.UpdateDeploymentAgent(h.DB, id, req.AgentID)
+	deployment, err := database.UpdateDeploymentRunner(h.DB, id, req.RunnerID)
 	if err != nil {
-		log.Error().Err(err).Msg("Error updating deployment agent")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update deployment agent"})
+		log.Error().Err(err).Msg("Error updating deployment runner")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update deployment runner"})
 		return
 	}
 
 	log.Info().
 		Int("deployment_id", id).
-		Msg("Deployment agent updated")
+		Msg("Deployment runner updated")
 
 	c.JSON(http.StatusOK, deployment)
 }
@@ -309,28 +309,28 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 		return
 	}
 
-	// Check that the deployment has an agent assigned
-	if deployment.AgentID == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Deployment has no agent assigned"})
+	// Check that the deployment has a runner assigned
+	if deployment.RunnerID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Deployment has no runner assigned"})
 		return
 	}
 
-	// Get the agent to retrieve its URL
-	agent, err := database.GetAgentByID(h.DB, *deployment.AgentID)
+	// Get the runner to retrieve its URL
+	runner, err := database.GetRunnerByID(h.DB, *deployment.RunnerID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
-	// Check that the agent has a URL configured
-	if agent.URL == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Agent has no URL configured"})
+	// Check that the runner has a URL configured
+	if runner.URL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Runner has no URL configured"})
 		return
 	}
 
-	// Check that the agent is online
-	if agent.Status != "ONLINE" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Agent is not online"})
+	// Check that the runner is online
+	if runner.Status != "ONLINE" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Runner is not online"})
 		return
 	}
 
@@ -360,7 +360,7 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 	}
 
 	// Send the request to the runner
-	runnerURL := fmt.Sprintf("%s/deploy", agent.URL)
+	runnerURL := fmt.Sprintf("%s/deploy", runner.URL)
 	resp, err := http.Post(runnerURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Error().Err(err).Str("runner_url", runnerURL).Msg("Failed to send request to runner")
@@ -379,7 +379,7 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 		return
 	}
 
-	log.Info().Int("deployment_id", id).Int("agent_id", *deployment.AgentID).Msg("Deployment execution started")
+	log.Info().Int("deployment_id", id).Int("runner_id", *deployment.RunnerID).Msg("Deployment execution started")
 	c.JSON(http.StatusOK, gin.H{"message": "Deployment execution started"})
 }
 
@@ -392,10 +392,10 @@ func setupDeploymentRoutes(api *gin.RouterGroup, db *sql.DB) {
 		deployments.POST("", handler.CreateDeployment)
 		deployments.GET("", handler.GetAllDeployments)
 		deployments.GET("/by-build", handler.GetDeploymentsByBuildID)
-		deployments.GET("/by-agent", handler.GetDeploymentsByAgentID)
+		deployments.GET("/by-runner", handler.GetDeploymentsByRunnerID)
 		deployments.GET("/:id", handler.GetDeployment)
 		deployments.PUT("/:id/status", handler.UpdateDeploymentStatus)
-		deployments.PUT("/:id/agent", handler.UpdateDeploymentAgent)
+		deployments.PUT("/:id/runner", handler.UpdateDeploymentRunner)
 		deployments.PUT("/:id/log", handler.UpdateDeploymentLog)
 		deployments.POST("/:id/execute", handler.ExecuteDeployment)
 		deployments.DELETE("/:id", handler.DeleteDeployment)

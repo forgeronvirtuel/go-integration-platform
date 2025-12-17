@@ -26,7 +26,7 @@ func setupDeploymentTestDB(t *testing.T) *sql.DB {
 	err = CreateBuildsTable(db)
 	require.NoError(t, err)
 
-	err = CreateAgentsTable(db)
+	err = CreateRunnersTable(db)
 	require.NoError(t, err)
 
 	err = CreateDeploymentsTable(db)
@@ -46,25 +46,25 @@ func TestCreateDeployment(t *testing.T) {
 	build, err := CreateBuild(db, project.ID, "main")
 	require.NoError(t, err)
 
-	// Créer un agent
-	agent, err := CreateAgent(db, "test-agent", map[string]string{"env": "test"})
+	// Créer un runner
+	runner, err := CreateRunner(db, "test-runner", map[string]string{"env": "test"})
 	require.NoError(t, err)
 
-	// Créer un déploiement avec agent
-	agentID := agent.ID
-	deployment, err := CreateDeployment(db, build.ID, &agentID)
+	// Créer un déploiement avec runner
+	runnerID := runner.ID
+	deployment, err := CreateDeployment(db, build.ID, &runnerID)
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment)
 	assert.Equal(t, build.ID, deployment.BuildID)
-	assert.Equal(t, &agentID, deployment.AgentID)
+	assert.Equal(t, &runnerID, deployment.RunnerID)
 	assert.Equal(t, "pending", deployment.Status)
 	assert.NotZero(t, deployment.ID)
 
-	// Créer un déploiement sans agent
+	// Créer un déploiement sans runner
 	deployment2, err := CreateDeployment(db, build.ID, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, deployment2)
-	assert.Nil(t, deployment2.AgentID)
+	assert.Nil(t, deployment2.RunnerID)
 }
 
 func TestGetDeploymentByID(t *testing.T) {
@@ -126,30 +126,30 @@ func TestGetDeploymentsByBuildID(t *testing.T) {
 	}
 }
 
-func TestGetDeploymentsByAgentID(t *testing.T) {
+func TestGetDeploymentsByRunnerID(t *testing.T) {
 	db := setupDeploymentTestDB(t)
 	defer db.Close()
 
 	// Créer les dépendances
 	project, _ := CreateProject(db, "test-project", "https://github.com/test/repo.git", "main", "")
 	build, _ := CreateBuild(db, project.ID, "main")
-	agent1, _ := CreateAgent(db, "agent-1", map[string]string{})
-	agent2, _ := CreateAgent(db, "agent-2", map[string]string{})
+	runner1, _ := CreateRunner(db, "runner-1", map[string]string{})
+	runner2, _ := CreateRunner(db, "runner-2", map[string]string{})
 
-	// Créer des déploiements pour différents agents
-	agent1ID := agent1.ID
-	agent2ID := agent2.ID
-	CreateDeployment(db, build.ID, &agent1ID)
-	CreateDeployment(db, build.ID, &agent1ID)
-	CreateDeployment(db, build.ID, &agent2ID)
+	// Créer des déploiements pour différents runners
+	runner1ID := runner1.ID
+	runner2ID := runner2.ID
+	CreateDeployment(db, build.ID, &runner1ID)
+	CreateDeployment(db, build.ID, &runner1ID)
+	CreateDeployment(db, build.ID, &runner2ID)
 	CreateDeployment(db, build.ID, nil)
 
-	deployments, err := GetDeploymentsByAgentID(db, agent1.ID)
+	deployments, err := GetDeploymentsByRunnerID(db, runner1.ID)
 	assert.NoError(t, err)
 	assert.Len(t, deployments, 2)
 
 	for _, deployment := range deployments {
-		assert.Equal(t, &agent1ID, deployment.AgentID)
+		assert.Equal(t, &runner1ID, deployment.RunnerID)
 	}
 }
 
@@ -214,33 +214,33 @@ func TestUpdateDeploymentLog(t *testing.T) {
 	assert.Equal(t, logOutput, deployment.LogOutput)
 }
 
-func TestUpdateDeploymentAgent(t *testing.T) {
+func TestUpdateDeploymentRunner(t *testing.T) {
 	db := setupDeploymentTestDB(t)
 	defer db.Close()
 
 	// Créer les dépendances
 	project, _ := CreateProject(db, "test-project", "https://github.com/test/repo.git", "main", "")
 	build, _ := CreateBuild(db, project.ID, "main")
-	agent1, _ := CreateAgent(db, "agent-1", map[string]string{})
-	agent2, _ := CreateAgent(db, "agent-2", map[string]string{})
+	runner1, _ := CreateRunner(db, "runner-1", map[string]string{})
+	runner2, _ := CreateRunner(db, "runner-2", map[string]string{})
 	created, _ := CreateDeployment(db, build.ID, nil)
 
-	// Assigner un agent
-	agent1ID := agent1.ID
-	deployment, err := UpdateDeploymentAgent(db, created.ID, &agent1ID)
+	// Assigner un runner
+	runner1ID := runner1.ID
+	deployment, err := UpdateDeploymentRunner(db, created.ID, &runner1ID)
 	assert.NoError(t, err)
-	assert.Equal(t, &agent1ID, deployment.AgentID)
+	assert.Equal(t, &runner1ID, deployment.RunnerID)
 
-	// Changer d'agent
-	agent2ID := agent2.ID
-	deployment, err = UpdateDeploymentAgent(db, created.ID, &agent2ID)
+	// Changer d'runner
+	runner2ID := runner2.ID
+	deployment, err = UpdateDeploymentRunner(db, created.ID, &runner2ID)
 	assert.NoError(t, err)
-	assert.Equal(t, &agent2ID, deployment.AgentID)
+	assert.Equal(t, &runner2ID, deployment.RunnerID)
 
-	// Retirer l'agent
-	deployment, err = UpdateDeploymentAgent(db, created.ID, nil)
+	// Retirer l'runner
+	deployment, err = UpdateDeploymentRunner(db, created.ID, nil)
 	assert.NoError(t, err)
-	assert.Nil(t, deployment.AgentID)
+	assert.Nil(t, deployment.RunnerID)
 }
 
 func TestDeleteDeployment(t *testing.T) {
@@ -281,25 +281,25 @@ func TestDeploymentForeignKeyConstraint(t *testing.T) {
 	assert.Equal(t, sql.ErrNoRows, err)
 }
 
-func TestDeploymentAgentNullOnDelete(t *testing.T) {
+func TestDeploymentRunnerNullOnDelete(t *testing.T) {
 	db := setupDeploymentTestDB(t)
 	defer db.Close()
 
 	// Créer les dépendances
 	project, _ := CreateProject(db, "test-project", "https://github.com/test/repo.git", "main", "")
 	build, _ := CreateBuild(db, project.ID, "main")
-	agent, _ := CreateAgent(db, "agent-1", map[string]string{})
-	agentID := agent.ID
-	deployment, _ := CreateDeployment(db, build.ID, &agentID)
+	runner, _ := CreateRunner(db, "runner-1", map[string]string{})
+	runnerID := runner.ID
+	deployment, _ := CreateDeployment(db, build.ID, &runnerID)
 
-	// Supprimer l'agent (doit mettre agent_id à NULL dans le déploiement)
-	err := DeleteAgent(db, agent.ID)
+	// Supprimer l'runner (doit mettre runner_id à NULL dans le déploiement)
+	err := DeleteRunner(db, runner.ID)
 	assert.NoError(t, err)
 
-	// Vérifier que le déploiement existe toujours mais sans agent
+	// Vérifier que le déploiement existe toujours mais sans runner
 	retrieved, err := GetDeploymentByID(db, deployment.ID)
 	assert.NoError(t, err)
-	assert.Nil(t, retrieved.AgentID)
+	assert.Nil(t, retrieved.RunnerID)
 }
 
 func TestDeploymentTimestamps(t *testing.T) {

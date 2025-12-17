@@ -12,25 +12,25 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type AgentHandler struct {
+type RunnerHandler struct {
 	DB *sql.DB
 }
 
-type CreateAgentRequest struct {
+type CreateRunnerRequest struct {
 	Name   string            `json:"name" binding:"required"`
 	Labels map[string]string `json:"labels"`
 	URL    string            `json:"url"`
 }
 
-type UpdateAgentStatusRequest struct {
+type UpdateRunnerStatusRequest struct {
 	Status string `json:"status" binding:"required,oneof=ONLINE OFFLINE DRAINING"`
 }
 
-type UpdateAgentLabelsRequest struct {
+type UpdateRunnerLabelsRequest struct {
 	Labels map[string]string `json:"labels" binding:"required"`
 }
 
-type UpdateAgentURLRequest struct {
+type UpdateRunnerURLRequest struct {
 	URL string `json:"url" binding:"required"`
 }
 
@@ -39,74 +39,74 @@ type APIError struct {
 	Message string `json:"message"`
 }
 
-// CreateAgent crée un nouvel agent
-func (h *AgentHandler) CreateAgent(c *gin.Context) {
-	var req CreateAgentRequest
+// CreateRunner crée un nouvel runner
+func (h *RunnerHandler) CreateRunner(c *gin.Context) {
+	var req CreateRunnerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
-	// Vérifier si uwn agent avec ce nom existe déjà
-	existingAgent, err := database.GetRunnerByName(h.DB, req.Name)
-	if err == nil && existingAgent != nil {
-		c.JSON(http.StatusConflict, APIError{Code: ERR_CDE_AGENT_NAME_EXISTS, Message: "Agent with this name already exists"})
+	// Vérifier si uwn runner avec ce nom existe déjà
+	existingRunner, err := database.GetRunnerByName(h.DB, req.Name)
+	if err == nil && existingRunner != nil {
+		c.JSON(http.StatusConflict, APIError{Code: ERR_CDE_AGENT_NAME_EXISTS, Message: "Runner with this name already exists"})
 		return
 	}
 
-	// Créer l'agent
-	agent, err := database.CreateAgent(h.DB, req.Name, req.Labels)
+	// Créer l'runner
+	runner, err := database.CreateRunner(h.DB, req.Name, req.Labels)
 	if err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la création de l'agent")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create agent"})
+		log.Error().Err(err).Msg("Erreur lors de la création de l'runner")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create runner"})
 		return
 	}
 
 	// Mettre à jour l'URL si fournie
 	if req.URL != "" {
-		if err := database.UpdateAgentURL(h.DB, agent.ID, req.URL); err != nil {
-			log.Warn().Err(err).Int("agent_id", agent.ID).Msg("Failed to update agent URL")
+		if err := database.UpdateRunnerURL(h.DB, runner.ID, req.URL); err != nil {
+			log.Warn().Err(err).Int("runner_id", runner.ID).Msg("Failed to update runner URL")
 		}
-		agent.URL = req.URL
+		runner.URL = req.URL
 	}
 
-	log.Info().Int("agent_id", agent.ID).Str("name", agent.Name).Msg("Agent créé avec succès")
-	c.JSON(http.StatusCreated, agent)
+	log.Info().Int("runner_id", runner.ID).Str("name", runner.Name).Msg("Runner créé avec succès")
+	c.JSON(http.StatusCreated, runner)
 }
 
-// GetAgent récupère un agent par ID
-func (h *AgentHandler) GetAgent(c *gin.Context) {
+// GetRunner récupère un runner par ID
+func (h *RunnerHandler) GetRunner(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner ID"})
 		return
 	}
 
-	agent, err := database.GetAgentByID(h.DB, id)
+	runner, err := database.GetRunnerByID(h.DB, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, agent)
+	c.JSON(http.StatusOK, runner)
 }
 
-// GetAgent récupère un agent par ID
-func (h *AgentHandler) GetAgentByName(c *gin.Context) {
+// GetRunner récupère un runner par ID
+func (h *RunnerHandler) GetRunnerByName(c *gin.Context) {
 	name := c.Param("name")
 
-	agent, err := database.GetRunnerByName(h.DB, name)
+	runner, err := database.GetRunnerByName(h.DB, name)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, agent)
+	c.JSON(http.StatusOK, runner)
 }
 
-// GetAllAgents récupère tous les agents
-func (h *AgentHandler) GetAllAgents(c *gin.Context) {
+// GetAllRunners récupère tous les runners
+func (h *RunnerHandler) GetAllRunners(c *gin.Context) {
 	// Optionnel: filtrer par statut
 	status := c.Query("status")
 
@@ -114,7 +114,7 @@ func (h *AgentHandler) GetAllAgents(c *gin.Context) {
 	var err error
 
 	if status != "" {
-		runners, err = database.GetAgentsByStatus(h.DB, status)
+		runners, err = database.GetRunnersByStatus(h.DB, status)
 	} else {
 		runners, err = database.GetAllRunners(h.DB)
 	}
@@ -131,141 +131,141 @@ func (h *AgentHandler) GetAllAgents(c *gin.Context) {
 	})
 }
 
-// UpdateAgentStatus met à jour le statut d'un agent
-func (h *AgentHandler) UpdateAgentStatus(c *gin.Context) {
+// UpdateRunnerStatus met à jour le statut d'un runner
+func (h *RunnerHandler) UpdateRunnerStatus(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner ID"})
 		return
 	}
 
-	var req UpdateAgentStatusRequest
+	var req UpdateRunnerStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
-	// Vérifier que l'agent existe
-	agent, err := database.GetAgentByID(h.DB, id)
+	// Vérifier que l'runner existe
+	runner, err := database.GetRunnerByID(h.DB, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
 	// Mettre à jour le statut
-	if err := database.UpdateAgentStatus(h.DB, id, req.Status); err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la mise à jour du statut de l'agent")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update agent status"})
+	if err := database.UpdateRunnerStatus(h.DB, id, req.Status); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la mise à jour du statut de l'runner")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update runner status"})
 		return
 	}
 
-	log.Info().Int("agent_id", id).Str("old_status", agent.Status).Str("new_status", req.Status).Msg("Statut de l'agent mis à jour")
+	log.Info().Int("runner_id", id).Str("old_status", runner.Status).Str("new_status", req.Status).Msg("Statut de l'runner mis à jour")
 
-	// Récupérer l'agent mis à jour
-	updatedAgent, _ := database.GetAgentByID(h.DB, id)
-	c.JSON(http.StatusOK, updatedAgent)
+	// Récupérer l'runner mis à jour
+	updatedRunner, _ := database.GetRunnerByID(h.DB, id)
+	c.JSON(http.StatusOK, updatedRunner)
 }
 
-// UpdateAgentLabels met à jour les labels d'un agent
-func (h *AgentHandler) UpdateAgentLabels(c *gin.Context) {
+// UpdateRunnerLabels met à jour les labels d'un runner
+func (h *RunnerHandler) UpdateRunnerLabels(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner ID"})
 		return
 	}
 
-	var req UpdateAgentLabelsRequest
+	var req UpdateRunnerLabelsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
-	// Vérifier que l'agent existe
-	_, err = database.GetAgentByID(h.DB, id)
+	// Vérifier que l'runner existe
+	_, err = database.GetRunnerByID(h.DB, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
 	// Mettre à jour les labels
-	if err := database.UpdateAgentLabels(h.DB, id, req.Labels); err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la mise à jour des labels de l'agent")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update agent labels"})
+	if err := database.UpdateRunnerLabels(h.DB, id, req.Labels); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la mise à jour des labels de l'runner")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update runner labels"})
 		return
 	}
 
-	log.Info().Int("agent_id", id).Msg("Labels de l'agent mis à jour")
+	log.Info().Int("runner_id", id).Msg("Labels de l'runner mis à jour")
 
-	// Récupérer l'agent mis à jour
-	updatedAgent, _ := database.GetAgentByID(h.DB, id)
-	c.JSON(http.StatusOK, updatedAgent)
+	// Récupérer l'runner mis à jour
+	updatedRunner, _ := database.GetRunnerByID(h.DB, id)
+	c.JSON(http.StatusOK, updatedRunner)
 }
 
-// UpdateAgentURL met à jour l'URL d'un agent
-func (h *AgentHandler) UpdateAgentURL(c *gin.Context) {
+// UpdateRunnerURL met à jour l'URL d'un runner
+func (h *RunnerHandler) UpdateRunnerURL(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner ID"})
 		return
 	}
 
-	var req UpdateAgentURLRequest
+	var req UpdateRunnerURLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
-	// Vérifier que l'agent existe
-	_, err = database.GetAgentByID(h.DB, id)
+	// Vérifier que l'runner existe
+	_, err = database.GetRunnerByID(h.DB, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
 	// Mettre à jour l'URL
-	if err := database.UpdateAgentURL(h.DB, id, req.URL); err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la mise à jour de l'URL de l'agent")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update agent URL"})
+	if err := database.UpdateRunnerURL(h.DB, id, req.URL); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la mise à jour de l'URL de l'runner")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update runner URL"})
 		return
 	}
 
-	log.Info().Int("agent_id", id).Str("url", req.URL).Msg("URL de l'agent mis à jour")
+	log.Info().Int("runner_id", id).Str("url", req.URL).Msg("URL de l'runner mis à jour")
 
-	// Récupérer l'agent mis à jour
-	updatedAgent, _ := database.GetAgentByID(h.DB, id)
-	c.JSON(http.StatusOK, updatedAgent)
+	// Récupérer l'runner mis à jour
+	updatedRunner, _ := database.GetRunnerByID(h.DB, id)
+	c.JSON(http.StatusOK, updatedRunner)
 }
 
-// Heartbeat enregistre un heartbeat pour un agent
-func (h *AgentHandler) Heartbeat(c *gin.Context) {
+// Heartbeat enregistre un heartbeat pour un runner
+func (h *RunnerHandler) Heartbeat(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner ID"})
 		return
 	}
 
-	// Vérifier que l'agent existe
-	agent, err := database.GetAgentByID(h.DB, id)
+	// Vérifier que l'runner existe
+	runner, err := database.GetRunnerByID(h.DB, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
 	// Mettre à jour le heartbeat
-	if err := database.UpdateAgentHeartbeat(h.DB, id); err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la mise à jour du heartbeat de l'agent")
+	if err := database.UpdateRunnerHeartbeat(h.DB, id); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la mise à jour du heartbeat de l'runner")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update heartbeat"})
 		return
 	}
 
-	// Si l'agent était OFFLINE, le passer à ONLINE
-	if agent.Status == "OFFLINE" {
-		if err := database.UpdateAgentStatus(h.DB, id, "ONLINE"); err != nil {
-			log.Error().Err(err).Msg("Erreur lors de la mise à jour du statut de l'agent")
+	// Si l'runner était OFFLINE, le passer à ONLINE
+	if runner.Status == "OFFLINE" {
+		if err := database.UpdateRunnerStatus(h.DB, id, "ONLINE"); err != nil {
+			log.Error().Err(err).Msg("Erreur lors de la mise à jour du statut de l'runner")
 		}
 	}
 
@@ -275,46 +275,46 @@ func (h *AgentHandler) Heartbeat(c *gin.Context) {
 	})
 }
 
-// DeleteAgent supprime un agent
-func (h *AgentHandler) DeleteAgent(c *gin.Context) {
+// DeleteRunner supprime un runner
+func (h *RunnerHandler) DeleteRunner(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner ID"})
 		return
 	}
 
-	// Vérifier que l'agent existe
-	_, err = database.GetAgentByID(h.DB, id)
+	// Vérifier que l'runner existe
+	_, err = database.GetRunnerByID(h.DB, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Agent not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
-	// Supprimer l'agent
-	if err := database.DeleteAgent(h.DB, id); err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la suppression de l'agent")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete agent"})
+	// Supprimer l'runner
+	if err := database.DeleteRunner(h.DB, id); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la suppression de l'runner")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete runner"})
 		return
 	}
 
-	log.Info().Int("agent_id", id).Msg("Agent supprimé avec succès")
-	c.JSON(http.StatusOK, gin.H{"message": "Agent deleted successfully"})
+	log.Info().Int("runner_id", id).Msg("Runner supprimé avec succès")
+	c.JSON(http.StatusOK, gin.H{"message": "Runner deleted successfully"})
 }
 
-// setupRunnerRoutes configure endpoints for managing runners (old name: agents)
+// setupRunnerRoutes configure endpoints for managing runners (old name: runners)
 func setupRunnerRoutes(api *gin.RouterGroup, db *sql.DB) {
-	handler := &AgentHandler{DB: db}
+	handler := &RunnerHandler{DB: db}
 	runners := api.Group("/runners")
 	{
-		runners.POST("/register", handler.CreateAgent)        // Créer un agent
-		runners.GET("", handler.GetAllAgents)                 // Lister tous les agents (avec filtre status optionnel)
-		runners.GET("/:id", handler.GetAgent)                 // Récupérer un agent par ID
-		runners.GET("/by-name/:name", handler.GetAgentByName) // Récupérer un agent par nom
-		runners.PUT("/:id/status", handler.UpdateAgentStatus) // Mettre à jour le statut
-		runners.PUT("/:id/labels", handler.UpdateAgentLabels) // Mettre à jour les labels
-		runners.PUT("/:id/url", handler.UpdateAgentURL)       // Mettre à jour l'URL
-		runners.POST("/:id/heartbeat", handler.Heartbeat)     // Heartbeat
-		runners.DELETE("/:id", handler.DeleteAgent)           // Supprimer un agent
+		runners.POST("/register", handler.CreateRunner)        // Créer un runner
+		runners.GET("", handler.GetAllRunners)                 // Lister tous les runners (avec filtre status optionnel)
+		runners.GET("/:id", handler.GetRunner)                 // Récupérer un runner par ID
+		runners.GET("/by-name/:name", handler.GetRunnerByName) // Récupérer un runner par nom
+		runners.PUT("/:id/status", handler.UpdateRunnerStatus) // Mettre à jour le statut
+		runners.PUT("/:id/labels", handler.UpdateRunnerLabels) // Mettre à jour les labels
+		runners.PUT("/:id/url", handler.UpdateRunnerURL)       // Mettre à jour l'URL
+		runners.POST("/:id/heartbeat", handler.Heartbeat)      // Heartbeat
+		runners.DELETE("/:id", handler.DeleteRunner)           // Supprimer un runner
 	}
 }

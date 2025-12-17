@@ -45,8 +45,8 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 
-	if err := CreateAgentsTable(db); err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la création de la table agents")
+	if err := CreateRunnersTable(db); err != nil {
+		log.Error().Err(err).Msg("Erreur lors de la création de la table runners")
 		return err
 	}
 

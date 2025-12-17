@@ -30,7 +30,7 @@ func setupDeploymentTestDB(t *testing.T) *sql.DB {
 	err = database.CreateBuildsTable(db)
 	require.NoError(t, err)
 
-	err = database.CreateAgentsTable(db)
+	err = database.CreateRunnersTable(db)
 	require.NoError(t, err)
 
 	err = database.CreateDeploymentsTable(db)
@@ -71,11 +71,11 @@ func TestCreateDeploymentEndpoint(t *testing.T) {
 
 	assert.Equal(t, build.ID, response.BuildID)
 	assert.Equal(t, "pending", response.Status)
-	assert.Nil(t, response.AgentID)
+	assert.Nil(t, response.RunnerID)
 	assert.NotZero(t, response.ID)
 }
 
-func TestCreateDeploymentWithAgent(t *testing.T) {
+func TestCreateDeploymentWithRunner(t *testing.T) {
 	db := setupDeploymentTestDB(t)
 	defer db.Close()
 
@@ -84,16 +84,16 @@ func TestCreateDeploymentWithAgent(t *testing.T) {
 	build, _ := database.CreateBuild(db, project.ID, "main")
 	database.UpdateBuildStatus(db, build.ID, "success", "Build completed")
 
-	agent, _ := database.CreateAgent(db, "test-agent", map[string]string{"env": "test"})
-	database.UpdateAgentStatus(db, agent.ID, "ONLINE")
+	runner, _ := database.CreateRunner(db, "test-runner", map[string]string{"env": "test"})
+	database.UpdateRunnerStatus(db, runner.ID, "ONLINE")
 
 	gin.SetMode(gin.TestMode)
 	router := SetupControlPlaneRouter(db, "")
 
-	agentID := agent.ID
+	runnerID := runner.ID
 	reqBody := CreateDeploymentRequest{
-		BuildID: build.ID,
-		AgentID: &agentID,
+		BuildID:  build.ID,
+		RunnerID: &runnerID,
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
@@ -110,7 +110,7 @@ func TestCreateDeploymentWithAgent(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, build.ID, response.BuildID)
-	assert.Equal(t, &agentID, response.AgentID)
+	assert.Equal(t, &runnerID, response.RunnerID)
 }
 
 func TestCreateDeploymentBuildNotFound(t *testing.T) {
@@ -162,7 +162,7 @@ func TestCreateDeploymentBuildNotSuccess(t *testing.T) {
 	assert.True(t, w.Code == http.StatusNotFound || w.Code == http.StatusBadRequest)
 }
 
-func TestCreateDeploymentAgentNotOnline(t *testing.T) {
+func TestCreateDeploymentRunnerNotOnline(t *testing.T) {
 	db := setupDeploymentTestDB(t)
 	defer db.Close()
 
@@ -171,16 +171,16 @@ func TestCreateDeploymentAgentNotOnline(t *testing.T) {
 	build, _ := database.CreateBuild(db, project.ID, "main")
 	database.UpdateBuildStatus(db, build.ID, "success", "Build completed")
 
-	agent, _ := database.CreateAgent(db, "test-agent", map[string]string{})
-	// L'agent est OFFLINE par défaut
+	runner, _ := database.CreateRunner(db, "test-runner", map[string]string{})
+	// L'runner est OFFLINE par défaut
 
 	gin.SetMode(gin.TestMode)
 	router := SetupControlPlaneRouter(db, "")
 
-	agentID := agent.ID
+	runnerID := runner.ID
 	reqBody := CreateDeploymentRequest{
-		BuildID: build.ID,
-		AgentID: &agentID,
+		BuildID:  build.ID,
+		RunnerID: &runnerID,
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
@@ -190,7 +190,7 @@ func TestCreateDeploymentAgentNotOnline(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Creating a deployment with an offline agent should succeed (status check is done at execution time)
+	// Creating a deployment with an offline runner should succeed (status check is done at execution time)
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
@@ -280,26 +280,26 @@ func TestGetDeploymentsByBuildIDEndpoint(t *testing.T) {
 	assert.Equal(t, float64(2), response["count"])
 }
 
-func TestGetDeploymentsByAgentIDEndpoint(t *testing.T) {
+func TestGetDeploymentsByRunnerIDEndpoint(t *testing.T) {
 	db := setupDeploymentTestDB(t)
 	defer db.Close()
 
 	// Créer plusieurs déploiements
 	project, _ := database.CreateProject(db, "test-project", "https://github.com/test/repo.git", "main", "")
 	build, _ := database.CreateBuild(db, project.ID, "main")
-	agent1, _ := database.CreateAgent(db, "agent-1", map[string]string{})
-	agent2, _ := database.CreateAgent(db, "agent-2", map[string]string{})
+	runner1, _ := database.CreateRunner(db, "runner-1", map[string]string{})
+	runner2, _ := database.CreateRunner(db, "runner-2", map[string]string{})
 
-	agent1ID := agent1.ID
-	agent2ID := agent2.ID
-	database.CreateDeployment(db, build.ID, &agent1ID)
-	database.CreateDeployment(db, build.ID, &agent1ID)
-	database.CreateDeployment(db, build.ID, &agent2ID)
+	runner1ID := runner1.ID
+	runner2ID := runner2.ID
+	database.CreateDeployment(db, build.ID, &runner1ID)
+	database.CreateDeployment(db, build.ID, &runner1ID)
+	database.CreateDeployment(db, build.ID, &runner2ID)
 
 	gin.SetMode(gin.TestMode)
 	router := SetupControlPlaneRouter(db, "")
 
-	req, _ := http.NewRequest("GET", baseUrl+"/deployments/by-agent?agent_id="+string(rune(agent1.ID+'0')), nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/deployments/by-runner?runner_id="+string(rune(runner1.ID+'0')), nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -370,27 +370,27 @@ func TestUpdateDeploymentStatusInvalid(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestUpdateDeploymentAgentEndpoint(t *testing.T) {
+func TestUpdateDeploymentRunnerEndpoint(t *testing.T) {
 	db := setupDeploymentTestDB(t)
 	defer db.Close()
 
-	// Créer un déploiement et un agent
+	// Créer un déploiement et un runner
 	project, _ := database.CreateProject(db, "test-project", "https://github.com/test/repo.git", "main", "")
 	build, _ := database.CreateBuild(db, project.ID, "main")
 	deployment, _ := database.CreateDeployment(db, build.ID, nil)
-	agent, _ := database.CreateAgent(db, "test-agent", map[string]string{})
-	database.UpdateAgentStatus(db, agent.ID, "ONLINE")
+	runner, _ := database.CreateRunner(db, "test-runner", map[string]string{})
+	database.UpdateRunnerStatus(db, runner.ID, "ONLINE")
 
 	gin.SetMode(gin.TestMode)
 	router := SetupControlPlaneRouter(db, "")
 
-	agentID := agent.ID
-	reqBody := UpdateDeploymentAgentRequest{
-		AgentID: &agentID,
+	runnerID := runner.ID
+	reqBody := UpdateDeploymentRunnerRequest{
+		RunnerID: &runnerID,
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("PUT", baseUrl+"/deployments/"+string(rune(deployment.ID+'0'))+"/agent", bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest("PUT", baseUrl+"/deployments/"+string(rune(deployment.ID+'0'))+"/runner", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -402,7 +402,7 @@ func TestUpdateDeploymentAgentEndpoint(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 
-	assert.Equal(t, &agentID, response.AgentID)
+	assert.Equal(t, &runnerID, response.RunnerID)
 }
 
 func TestUpdateDeploymentLogEndpoint(t *testing.T) {

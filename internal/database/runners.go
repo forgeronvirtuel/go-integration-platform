@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Runner représente un agent de build
+// Runner représente un runner de build
 type Runner struct {
 	ID         int               `json:"id"`
 	Name       string            `json:"name"`
@@ -19,10 +19,10 @@ type Runner struct {
 	CreatedAt  time.Time         `json:"created_at"`
 }
 
-// CreateAgentsTable crée la table agents si elle n'existe pas
-func CreateAgentsTable(db *sql.DB) error {
+// CreateRunnersTable crée la table runners si elle n'existe pas
+func CreateRunnersTable(db *sql.DB) error {
 	query := `
-	CREATE TABLE IF NOT EXISTS agents (
+	CREATE TABLE IF NOT EXISTS runners (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL UNIQUE,
 		url TEXT NOT NULL DEFAULT '',
@@ -31,28 +31,28 @@ func CreateAgentsTable(db *sql.DB) error {
 		last_seen_at DATETIME,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
-	CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
-	CREATE INDEX IF NOT EXISTS idx_agents_name ON agents(name);
+	CREATE INDEX IF NOT EXISTS idx_runners_status ON runners(status);
+	CREATE INDEX IF NOT EXISTS idx_runners_name ON runners(name);
 	`
 
 	if _, err := db.Exec(query); err != nil {
-		log.Error().Err(err).Msg("Erreur lors de la création de la table agents")
+		log.Error().Err(err).Msg("Erreur lors de la création de la table runners")
 		return err
 	}
 
-	log.Info().Msg("Table 'agents' créée ou déjà existante")
+	log.Info().Msg("Table 'runners' créée ou déjà existante")
 	return nil
 }
 
-// CreateAgent crée un nouvel agent
-func CreateAgent(db *sql.DB, name string, labels map[string]string) (*Runner, error) {
+// CreateRunner crée un nouvel runner
+func CreateRunner(db *sql.DB, name string, labels map[string]string) (*Runner, error) {
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
 	}
 
 	query := `
-		INSERT INTO agents (name, url, labels, status, last_seen_at)
+		INSERT INTO runners (name, url, labels, status, last_seen_at)
 		VALUES (?, '', ?, 'OFFLINE', CURRENT_TIMESTAMP)
 	`
 
@@ -66,29 +66,29 @@ func CreateAgent(db *sql.DB, name string, labels map[string]string) (*Runner, er
 		return nil, err
 	}
 
-	return GetAgentByID(db, int(id))
+	return GetRunnerByID(db, int(id))
 }
 
-// GetAgentByID récupère un agent par son ID
-func GetAgentByID(db *sql.DB, id int) (*Runner, error) {
+// GetRunnerByID récupère un runner par son ID
+func GetRunnerByID(db *sql.DB, id int) (*Runner, error) {
 	query := `
 		SELECT id, name, url, labels, status, last_seen_at, created_at
-		FROM agents
+		FROM runners
 		WHERE id = ?
 	`
 
-	var agent Runner
+	var runner Runner
 	var labelsJSON string
 	var lastSeenAt sql.NullTime
 
 	err := db.QueryRow(query, id).Scan(
-		&agent.ID,
-		&agent.Name,
-		&agent.URL,
+		&runner.ID,
+		&runner.Name,
+		&runner.URL,
 		&labelsJSON,
-		&agent.Status,
+		&runner.Status,
 		&lastSeenAt,
-		&agent.CreatedAt,
+		&runner.CreatedAt,
 	)
 
 	if err != nil {
@@ -96,36 +96,36 @@ func GetAgentByID(db *sql.DB, id int) (*Runner, error) {
 	}
 
 	if lastSeenAt.Valid {
-		agent.LastSeenAt = lastSeenAt.Time
+		runner.LastSeenAt = lastSeenAt.Time
 	}
 
-	if err := json.Unmarshal([]byte(labelsJSON), &agent.Labels); err != nil {
-		agent.Labels = make(map[string]string)
+	if err := json.Unmarshal([]byte(labelsJSON), &runner.Labels); err != nil {
+		runner.Labels = make(map[string]string)
 	}
 
-	return &agent, nil
+	return &runner, nil
 }
 
-// GetRunnerByName récupère un agent par son nom (hostname)
+// GetRunnerByName récupère un runner par son nom (hostname)
 func GetRunnerByName(db *sql.DB, name string) (*Runner, error) {
 	query := `
 		SELECT id, name, url, labels, status, last_seen_at, created_at
-		FROM agents
+		FROM runners
 		WHERE name = ?
 	`
 
-	var agent Runner
+	var runner Runner
 	var labelsJSON string
 	var lastSeenAt sql.NullTime
 
 	err := db.QueryRow(query, name).Scan(
-		&agent.ID,
-		&agent.Name,
-		&agent.URL,
+		&runner.ID,
+		&runner.Name,
+		&runner.URL,
 		&labelsJSON,
-		&agent.Status,
+		&runner.Status,
 		&lastSeenAt,
-		&agent.CreatedAt,
+		&runner.CreatedAt,
 	)
 
 	if err != nil {
@@ -133,20 +133,20 @@ func GetRunnerByName(db *sql.DB, name string) (*Runner, error) {
 	}
 
 	if lastSeenAt.Valid {
-		agent.LastSeenAt = lastSeenAt.Time
+		runner.LastSeenAt = lastSeenAt.Time
 	}
 
-	if err := json.Unmarshal([]byte(labelsJSON), &agent.Labels); err != nil {
-		agent.Labels = make(map[string]string)
+	if err := json.Unmarshal([]byte(labelsJSON), &runner.Labels); err != nil {
+		runner.Labels = make(map[string]string)
 	}
 
-	return &agent, nil
+	return &runner, nil
 }
 
 func GetAllRunners(db *sql.DB) ([]Runner, error) {
 	query := `
 		SELECT id, name, url, labels, status, last_seen_at, created_at
-		FROM agents
+		FROM runners
 		ORDER BY created_at DESC
 	`
 
@@ -190,11 +190,11 @@ func GetAllRunners(db *sql.DB) ([]Runner, error) {
 	return runners, nil
 }
 
-// GetAgentsByStatus récupère les agents par statut
-func GetAgentsByStatus(db *sql.DB, status string) ([]Runner, error) {
+// GetRunnersByStatus récupère les runners par statut
+func GetRunnersByStatus(db *sql.DB, status string) ([]Runner, error) {
 	query := `
 		SELECT id, name, url, labels, status, last_seen_at, created_at
-		FROM agents
+		FROM runners
 		WHERE status = ?
 		ORDER BY last_seen_at DESC
 	`
@@ -205,20 +205,20 @@ func GetAgentsByStatus(db *sql.DB, status string) ([]Runner, error) {
 	}
 	defer rows.Close()
 
-	var agents []Runner
+	var runners []Runner
 	for rows.Next() {
-		var agent Runner
+		var runner Runner
 		var labelsJSON string
 		var lastSeenAt sql.NullTime
 
 		err := rows.Scan(
-			&agent.ID,
-			&agent.Name,
-			&agent.URL,
+			&runner.ID,
+			&runner.Name,
+			&runner.URL,
 			&labelsJSON,
-			&agent.Status,
+			&runner.Status,
 			&lastSeenAt,
-			&agent.CreatedAt,
+			&runner.CreatedAt,
 		)
 
 		if err != nil {
@@ -226,23 +226,23 @@ func GetAgentsByStatus(db *sql.DB, status string) ([]Runner, error) {
 		}
 
 		if lastSeenAt.Valid {
-			agent.LastSeenAt = lastSeenAt.Time
+			runner.LastSeenAt = lastSeenAt.Time
 		}
 
-		if err := json.Unmarshal([]byte(labelsJSON), &agent.Labels); err != nil {
-			agent.Labels = make(map[string]string)
+		if err := json.Unmarshal([]byte(labelsJSON), &runner.Labels); err != nil {
+			runner.Labels = make(map[string]string)
 		}
 
-		agents = append(agents, agent)
+		runners = append(runners, runner)
 	}
 
-	return agents, nil
+	return runners, nil
 }
 
-// UpdateAgentStatus met à jour le statut d'un agent
-func UpdateAgentStatus(db *sql.DB, id int, status string) error {
+// UpdateRunnerStatus met à jour le statut d'un runner
+func UpdateRunnerStatus(db *sql.DB, id int, status string) error {
 	query := `
-		UPDATE agents
+		UPDATE runners
 		SET status = ?, last_seen_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 	`
@@ -251,15 +251,15 @@ func UpdateAgentStatus(db *sql.DB, id int, status string) error {
 	return err
 }
 
-// UpdateAgentLabels met à jour les labels d'un agent
-func UpdateAgentLabels(db *sql.DB, id int, labels map[string]string) error {
+// UpdateRunnerLabels met à jour les labels d'un runner
+func UpdateRunnerLabels(db *sql.DB, id int, labels map[string]string) error {
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return err
 	}
 
 	query := `
-		UPDATE agents
+		UPDATE runners
 		SET labels = ?
 		WHERE id = ?
 	`
@@ -268,10 +268,10 @@ func UpdateAgentLabels(db *sql.DB, id int, labels map[string]string) error {
 	return err
 }
 
-// UpdateAgentURL met à jour l'URL d'un agent
-func UpdateAgentURL(db *sql.DB, id int, url string) error {
+// UpdateRunnerURL met à jour l'URL d'un runner
+func UpdateRunnerURL(db *sql.DB, id int, url string) error {
 	query := `
-		UPDATE agents
+		UPDATE runners
 		SET url = ?
 		WHERE id = ?
 	`
@@ -280,10 +280,10 @@ func UpdateAgentURL(db *sql.DB, id int, url string) error {
 	return err
 }
 
-// UpdateAgentHeartbeat met à jour le last_seen_at d'un agent (heartbeat)
-func UpdateAgentHeartbeat(db *sql.DB, id int) error {
+// UpdateRunnerHeartbeat met à jour le last_seen_at d'un runner (heartbeat)
+func UpdateRunnerHeartbeat(db *sql.DB, id int) error {
 	query := `
-		UPDATE agents
+		UPDATE runners
 		SET last_seen_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 	`
@@ -292,20 +292,20 @@ func UpdateAgentHeartbeat(db *sql.DB, id int) error {
 	return err
 }
 
-// DeleteAgent supprime un agent
-func DeleteAgent(db *sql.DB, id int) error {
-	query := `DELETE FROM agents WHERE id = ?`
+// DeleteRunner supprime un runner
+func DeleteRunner(db *sql.DB, id int) error {
+	query := `DELETE FROM runners WHERE id = ?`
 	_, err := db.Exec(query, id)
 	return err
 }
 
-// MarkStaleAgentsOffline marque comme OFFLINE les agents qui n'ont pas envoyé de heartbeat
+// MarkStaleRunnersOffline marque comme OFFLINE les runners qui n'ont pas envoyé de heartbeat
 // depuis plus de timeoutDuration
-func MarkStaleAgentsOffline(db *sql.DB, timeoutDuration time.Duration) (int, error) {
+func MarkStaleRunnersOffline(db *sql.DB, timeoutDuration time.Duration) (int, error) {
 	timeoutThreshold := time.Now().Add(-timeoutDuration)
 
 	query := `
-		UPDATE agents
+		UPDATE runners
 		SET status = 'OFFLINE'
 		WHERE status = 'ONLINE'
 		AND last_seen_at < ?
