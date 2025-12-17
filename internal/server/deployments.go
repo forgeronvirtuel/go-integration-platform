@@ -298,19 +298,23 @@ func (h *DeploymentHandler) DeleteDeployment(c *gin.Context) {
 func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+		log.Err(err).Str("id_str", c.Param("id")).Msg("Invalid deployment ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid deployment ID"})
 		return
 	}
+	log.Info().Int("deployment_id", id).Msg("Executing deployment")
 
 	// Get the deployment
 	deployment, err := database.GetDeploymentByID(h.DB, id)
 	if err != nil {
+		log.Err(err).Int("deployment_id", id).Msg("Deployment not found")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Deployment not found"})
 		return
 	}
 
 	// Check that the deployment has a runner assigned
 	if deployment.RunnerID == nil {
+		log.Warn().Int("deployment_id", id).Msg("Deployment has no runner assigned")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Deployment has no runner assigned"})
 		return
 	}
@@ -318,21 +322,27 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 	// Get the runner to retrieve its URL
 	runner, err := database.GetRunnerByID(h.DB, *deployment.RunnerID)
 	if err != nil {
+		log.Err(err).Int("runner_id", *deployment.RunnerID).Msg("Runner not found")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
+	log.Info().Int("runner_id", runner.ID).Str("runner_name", runner.Name).Msg("Runner retrieved for deployment")
 
 	// Check that the runner has a URL configured
 	if runner.URL == "" {
+		log.Warn().Int("runner_id", runner.ID).Msg("Runner has no URL configured")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Runner has no URL configured"})
 		return
 	}
+	log.Info().Int("runner_id", runner.ID).Str("runner_url", runner.URL).Msg("Runner URL verified")
 
 	// Check that the runner is online
 	if runner.Status != "ONLINE" {
+		log.Warn().Int("runner_id", runner.ID).Str("runner_status", runner.Status).Msg("Runner is not online")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Runner is not online"})
 		return
 	}
+	log.Info().Int("runner_id", runner.ID).Msg("Runner is online")
 
 	// Update deployment status to deploying
 	_, err = database.UpdateDeploymentStatus(h.DB, id, "deploying")
@@ -341,6 +351,7 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update deployment status"})
 		return
 	}
+	log.Info().Int("deployment_id", id).Msg("Deployment status updated to deploying")
 
 	// Prepare the request to send to the runner
 	// Get the control plane URL from the request (we'll use the Host header)
@@ -358,9 +369,10 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare request"})
 		return
 	}
+	log.Info().Int("deployment_id", id).Msg("Request payload prepared for runner")
 
 	// Send the request to the runner
-	runnerURL := fmt.Sprintf("%s/deploy", runner.URL)
+	runnerURL := fmt.Sprintf("%s/api/v1/deploy", runner.URL)
 	resp, err := http.Post(runnerURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Error().Err(err).Str("runner_url", runnerURL).Msg("Failed to send request to runner")
@@ -369,6 +381,7 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Failed to contact runner"})
 		return
 	}
+	log.Info().Int("deployment_id", id).Str("runner_url", runnerURL).Msg("Request sent to runner successfully")
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
