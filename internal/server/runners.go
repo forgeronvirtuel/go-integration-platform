@@ -79,16 +79,20 @@ func (h *RunnerHandler) GetRunner(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		log.Err(err).Str("id_str", idStr).Msg("Invalid runner ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid runner ID"})
 		return
 	}
+	log.Info().Int("id", id).Msg("Fetching runner by ID")
 
 	runner, err := database.GetRunnerByID(h.DB, id)
 	if err != nil {
+		log.Err(err).Int("id", id).Msg("Runner not found")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Runner not found"})
 		return
 	}
 
+	log.Info().Int("id", id).Str("name", runner.Name).Msg("Runner retrieved successfully")
 	c.JSON(http.StatusOK, runner)
 }
 
