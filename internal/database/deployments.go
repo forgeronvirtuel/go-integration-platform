@@ -109,6 +109,12 @@ func GetDeploymentByID(db *sql.DB, id int) (*Deployment, error) {
 		deployment.LogOutput = logOutput.String
 	}
 
+	log.Debug().
+		Int("deployment_id", deployment.ID).
+		Int("build_id", deployment.BuildID).
+		Int("runner_id", *deployment.RunnerID).
+		Msg("Deployment retrieved successfully")
+
 	return deployment, nil
 }
 
