@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"time"
+	"os"
+	"os/exec"
+	"path/filepath"
 
 	"github.com/rs/zerolog/log"
 )
@@ -17,17 +20,84 @@ func ExecuteDeployment(runnerID, deploymentID, buildID int, controlPlaneURL stri
 		Int("build_id", buildID).
 		Msg("Starting deployment execution")
 
-	// TODO: Implémenter le téléchargement et l'exécution du build
-	// 1. Télécharger le binaire depuis le control plane
-	// 2. Exécuter le binaire
-	// 3. Capturer les logs
-	// 4. Envoyer les mises à jour de statut au control plane
+	// Download the binary
+	var downloadUrl = fmt.Sprintf("%s/api/v1/builds/%d/download", controlPlaneURL, buildID)
+	log.Info().Str("download_url", downloadUrl).Msg("Downloading binary")
+	binaryResp, err := http.Get(downloadUrl)
+	if err != nil {
+		log.Error().Err(err).Str("download_url", downloadUrl).Msg("Failed to download binary")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to download binary: %v", err))
+		return
+	}
+	defer binaryResp.Body.Close()
 
-	// Pour l'instant, on simule un déploiement réussi
-	time.Sleep(5 * time.Second)
+	if binaryResp.StatusCode != http.StatusOK {
+		log.Error().Int("status_code", binaryResp.StatusCode).Str("download_url", downloadUrl).Msg("Failed to download binary")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to download binary: HTTP %d", binaryResp.StatusCode))
+		return
+	}
 
-	// Mettre à jour le statut du déploiement
-	UpdateDeploymentStatus(controlPlaneURL, deploymentID, "deployed", "Deployment completed successfully")
+	// Create a temporary directory for the binary
+	tempDir, err := os.MkdirTemp("", fmt.Sprintf("deployment_%d_", deploymentID))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create temporary directory")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to create temporary directory: %v", err))
+		return
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create the binary file path
+	binaryPath := filepath.Join(tempDir, fmt.Sprintf("build_%d", buildID))
+	binaryFile, err := os.Create(binaryPath)
+	if err != nil {
+		log.Error().Err(err).Str("binary_path", binaryPath).Msg("Failed to create binary file")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to create binary file: %v", err))
+		return
+	}
+	defer binaryFile.Close()
+
+	// Copy the downloaded binary to the file
+	_, err = io.Copy(binaryFile, binaryResp.Body)
+	if err != nil {
+		log.Error().Err(err).Str("binary_path", binaryPath).Msg("Failed to save binary")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to save binary: %v", err))
+		return
+	}
+
+	// Flush and close the file
+	if err := binaryFile.Sync(); err != nil {
+		log.Error().Err(err).Str("binary_path", binaryPath).Msg("Failed to flush binary file")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to flush binary file: %v", err))
+		return
+	}
+	if err := binaryFile.Close(); err != nil {
+		log.Error().Err(err).Str("binary_path", binaryPath).Msg("Failed to close binary file")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to close binary file: %v", err))
+		return
+	}
+
+	// Make the binary executable
+	if err := os.Chmod(binaryPath, 0755); err != nil {
+		log.Error().Err(err).Str("binary_path", binaryPath).Msg("Failed to make binary executable")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Failed to make binary executable: %v", err))
+		return
+	}
+
+	log.Info().Str("binary_path", binaryPath).Msg("Binary saved successfully")
+
+	// Execute the binary
+	cmd := exec.Command(binaryPath)
+	var outputBuf bytes.Buffer
+	cmd.Stdout = &outputBuf
+	cmd.Stderr = &outputBuf
+
+	log.Info().Int("deployment_id", deploymentID).Msg("Executing binary")
+	if err := cmd.Run(); err != nil {
+		log.Error().Err(err).Int("deployment_id", deploymentID).Msg("Binary execution failed")
+		UpdateDeploymentStatus(controlPlaneURL, deploymentID, "failed", fmt.Sprintf("Binary execution failed: %v\nOutput:\n%s", err, outputBuf.String()))
+		return
+	}
+	UpdateDeploymentStatus(controlPlaneURL, deploymentID, "deployed", outputBuf.String())
 	log.Info().Int("deployment_id", deploymentID).Msg("Deployment completed")
 }
 
