@@ -179,15 +179,19 @@ func (h *DeploymentHandler) UpdateDeploymentStatus(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		log.Err(err).Str("id_str", idStr).Msg("Invalid deployment ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid deployment ID"})
 		return
 	}
+	log.Info().Int("deployment_id", id).Msg("Updating deployment status")
 
 	var req UpdateDeploymentStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Error().Err(err).Msg("Invalid request payload for updating deployment status")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
+	log.Info().Int("deployment_id", id).Str("new_status", req.Status).Msg("New deployment status received")
 
 	deployment, err := database.UpdateDeploymentStatus(h.DB, id, req.Status)
 	if err != nil {
