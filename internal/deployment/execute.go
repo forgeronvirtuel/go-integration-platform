@@ -104,7 +104,7 @@ func ExecuteDeployment(runnerID, deploymentID, buildID int, controlPlaneURL stri
 // UpdateDeploymentStatus met à jour le statut d'un déploiement
 func UpdateDeploymentStatus(controlPlaneURL string, deploymentID int, status, logOutput string) error {
 	// Update status
-	statusURL := fmt.Sprintf("%s/v1/api/deployments/%d/status", controlPlaneURL, deploymentID)
+	statusURL := fmt.Sprintf("%s/api/v1/deployments/%d/status", controlPlaneURL, deploymentID)
 	statusData := map[string]string{"status": status}
 	jsonData, err := json.Marshal(statusData)
 	if err != nil {
@@ -124,7 +124,7 @@ func UpdateDeploymentStatus(controlPlaneURL string, deploymentID int, status, lo
 	defer resp.Body.Close()
 
 	// Update logs
-	logURL := fmt.Sprintf("%s/v1/api/deployments/%d/log", controlPlaneURL, deploymentID)
+	logURL := fmt.Sprintf("%s/api/v1/deployments/%d/log", controlPlaneURL, deploymentID)
 	logData := map[string]string{"log_output": logOutput}
 	jsonData, err = json.Marshal(logData)
 	if err != nil {
