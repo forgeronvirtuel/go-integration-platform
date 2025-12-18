@@ -46,7 +46,7 @@ function BuildDetail({ build, project, onMessage, onBack }) {
   };
 
   const handleDownload = () => {
-    window.location.href = `/v1/api/builds/${buildData.id}/download`;
+    window.location.href = `/api/v1/builds/${buildData.id}/download`;
     onMessage("📥 Téléchargement lancé...");
   };
 
