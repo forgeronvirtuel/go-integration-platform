@@ -357,7 +357,7 @@ func (h *DeploymentHandler) ExecuteDeployment(c *gin.Context) {
 	// Get the control plane URL from the request (we'll use the Host header)
 	controlPlaneURL := fmt.Sprintf("http://%s", c.Request.Host)
 
-	requestPayload := map[string]interface{}{
+	requestPayload := map[string]any{
 		"deployment_id":     id,
 		"build_id":          deployment.BuildID,
 		"control_plane_url": controlPlaneURL,
