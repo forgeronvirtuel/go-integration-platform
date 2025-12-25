@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 
 	// Démarrer le serveur dans une goroutine
 	go func() {
-		server.StartControlPlaneServer(testPort, testDB, "./test-workspace")
+		server.StartControlPlaneServer("127.0.0.1", testPort, testDB, "./test-workspace")
 	}()
 
 	// Attendre que le serveur démarre
